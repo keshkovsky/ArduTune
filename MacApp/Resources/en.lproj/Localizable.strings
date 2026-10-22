@@ -3548,3 +3548,11 @@
 "Автоматичне налаштування PID скриптом VTOL-quicktune.lua: вмикається перемикачем на пульті (RCn_OPTION = QUIK_RC_FUNC, типово 300), перемикайте положення й тримайте апарат у повітрі, поки налаштування триває. Робіть це лише в безпечних умовах." = "Automatic PID tuning by the VTOL-quicktune.lua script: started with a transmitter switch (RCn_OPTION = QUIK_RC_FUNC, 300 by default); change the switch position and keep the vehicle in the air while the tune runs. Do this only in safe conditions.";
 "Параметрів Quick tune (QUIK_*) немає на польотнику. Вони з'являються, коли скрипт VTOL-quicktune.lua лежить у папці скриптів на SD-картці і скриптинг увімкнено (SCR_ENABLE = 1); після цього перезавантажте автопілот." = "The Quick tune parameters (QUIK_*) are not on the flight controller. They appear when the VTOL-quicktune.lua script is in the scripts folder on the SD card and scripting is enabled (SCR_ENABLE = 1); then reboot the autopilot.";
 "Завантажити GStreamer" = "Download GStreamer";
+"Порт не відкрито" = "Port not open";
+"Порт не вибрано" = "No port selected";
+"Не вдалося відкрити %@: %@" = "Could not open %@: %@";
+"Очікування даних від пульта…" = "Waiting for data from the radio…";
+"Пульт відключено" = "Radio disconnected";
+"Приймаю канали з пульта (кадрів: %lld)" = "Receiving channels from the radio (frames: %lld)";
+"— немає портів —" = "— no ports —";
+"Канали з пульта по USB Serial (115200): рядки «$…» (R2D2) або «RC …» (ESP-Bridge). Передаються як RC override, до 16 каналів. Не вибирайте порт польотника." = "Channels from the radio over USB Serial (115200): lines “$…” (R2D2) or “RC …” (ESP-Bridge). Sent as RC override, up to 16 channels. Do not select the flight controller port.";

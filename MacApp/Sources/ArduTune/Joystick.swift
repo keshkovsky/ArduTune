@@ -27,6 +27,8 @@ final class JoystickStore {
     var detectRow: Int?
     var status = String(localized: "Джойстик не підключений")
     var started = false
+    let vcp = VCPRadio()
+    var useVCP = UserDefaults.standard.string(forKey: "joy.source") == "vcp" { didSet { UserDefaults.standard.set(useVCP ? "vcp" : "joy", forKey: "joy.source") } }
 
     @ObservationIgnored private var manager: IOHIDManager?
     @ObservationIgnored private var baseline: [JoyAxis: Double] = [:]
@@ -137,6 +139,7 @@ final class JoystickStore {
 
     // MARK: Вихід
     func recompute() {
+        if useVCP { outputs = vcp.outputs(); return }
         var out = [Int](repeating: 0, count: 16)
         for i in 0..<16 {
             guard let a = rows[i].axis, var v = axes[a] else { out[i] = 0; continue }
@@ -158,7 +161,7 @@ final class JoystickStore {
         sender = Task { @MainActor in
             while !Task.isCancelled && enabled {
                 recompute()
-                if manualControl {
+                if manualControl && !useVCP {
                     func p(_ ch: Int) -> Int { let i = ch - 1; return i >= 0 && i < 16 && outputs[i] > 0 ? outputs[i] : 1500 }
                     let x = (p(pitchCh) - 1500) * 2, y = (p(rollCh) - 1500) * 2, z = max(0, p(thrCh) - 1000), r = (p(yawCh) - 1500) * 2
                     EngineAPI.post("/rc/manual?x=\(x)&y=\(y)&z=\(z)&r=\(r)")
@@ -214,6 +217,54 @@ struct JoystickSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
+            Picker("", selection: Binding(get: { j.useVCP }, set: { setSource($0) })) {
+                Text("Joystick").tag(false)
+                Text("VCP (with Lua)").tag(true)
+            }.pickerStyle(.segmented).labelsHidden().frame(width: 300)
+            if j.useVCP { vcpBody } else { joystickBody }
+        }
+        .padding(20)
+        .frame(minWidth: 900, minHeight: 640)
+        .onAppear { j.start(); syncMap(); if j.useVCP { j.vcp.refreshPorts() } }
+        .onChange(of: j.manualControl) { _, _ in syncMap() }
+        .onChange(of: j.rows) { _, _ in j.recompute() }
+    }
+
+    func setSource(_ vcp: Bool) {
+        if j.enabled { j.enabled = false }
+        j.useVCP = vcp
+        if vcp { j.vcp.refreshPorts() } else { j.vcp.closePort() }
+    }
+
+    var vcpBody: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Picker("", selection: Binding(get: { j.vcp.port }, set: { j.vcp.port = $0; if j.vcp.open { j.vcp.openPort() } })) {
+                    if j.vcp.ports.isEmpty { Text("— немає портів —").tag("") }
+                    ForEach(j.vcp.ports, id: \.self) { Text(lk($0.replacingOccurrences(of: "/dev/", with: ""))).tag($0) }
+                }.labelsHidden().frame(width: 280)
+                Button { j.vcp.refreshPorts() } label: { Image(systemName: "arrow.clockwise") }.help("Refresh")
+                Button(j.vcp.open ? "Close port" : "Open port") { j.vcp.open ? j.vcp.closePort() : j.vcp.openPort() }.disabled(j.vcp.port.isEmpty)
+                Toggle(isOn: Binding(get: { j.enabled }, set: { j.enabled = $0 })) { Text(lk(j.enabled ? "Вимкнути" : "Enable")) }
+                    .toggleStyle(.button).tint(j.enabled ? .green : nil).disabled(!j.vcp.open || !s.connected)
+                Spacer()
+            }
+            Text(lk(j.vcp.status)).font(.caption).foregroundStyle(.secondary)
+            Text("Канали з пульта по USB Serial (115200): рядки «$…» (R2D2) або «RC …» (ESP-Bridge). Передаються як RC override, до 16 каналів. Не вибирайте порт польотника.").font(.caption2).foregroundStyle(.secondary)
+            Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 5) {
+                ForEach(0..<16, id: \.self) { i in
+                    GridRow {
+                        Text("RC \(i + 1)").font(.system(.body, design: .monospaced).weight(.semibold))
+                        OutBar(value: j.vcp.receiving ? j.vcp.channels[i] : 0).frame(width: 260, height: 18)
+                    }
+                }
+            }
+        }
+        .onChange(of: j.enabled) { _, _ in }
+    }
+
+    var joystickBody: some View {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 Text("Joystick").font(.headline)
                 Picker("", selection: Binding(get: { j.selectedID ?? -1 }, set: { j.select($0 == -1 ? nil : $0) })) {
@@ -258,11 +309,6 @@ struct JoystickSheet: View {
                 }
             }
         }
-        .padding(20)
-        .frame(minWidth: 900, minHeight: 640)
-        .onAppear { j.start(); syncMap() }
-        .onChange(of: j.manualControl) { _, _ in syncMap() }
-        .onChange(of: j.rows) { _, _ in j.recompute() }
     }
 }
 

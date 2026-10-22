@@ -3,7 +3,7 @@ import Observation
 import Darwin
 
 /// Пульт EdgeTX з Lua-скриптом по USB Serial (VCP, 115200): текстові рядки каналів.
-/// «$v1,v2,…» (R2D2: до 24 значень −1024…+1024, PWM = v/2 + 1500) або «RC p1,…,p16» (ESP-Bridge: PWM 800…2200).
+/// Формат R2D2: «$v1,v2,…» (до 24 значень −1024…+1024, PWM = v/2 + 1500).
 @Observable
 final class VCPRadio {
     var ports: [String] = []
@@ -75,10 +75,6 @@ final class VCPRadio {
             let v = ints(line.dropFirst())
             guard v.count >= 4 else { return }
             for i in 0..<min(16, v.count) { out[i] = max(1000, min(2000, v[i] / 2 + 1500)) }
-        } else if line.hasPrefix("RC") {
-            let v = ints(line.dropFirst(2))
-            guard v.count >= 4 else { return }
-            for i in 0..<min(16, v.count) { out[i] = max(800, min(2200, v[i])) }
         } else { return }
         channels = out; lastFrame = Date(); frames += 1
         if frames == 1 || frames % 50 == 0 { status = String(localized: "Приймаю канали з пульта (кадрів: \(frames))") }

@@ -3555,4 +3555,4 @@
 "Пульт відключено" = "Radio disconnected";
 "Приймаю канали з пульта (кадрів: %lld)" = "Receiving channels from the radio (frames: %lld)";
 "— немає портів —" = "— no ports —";
-"Канали з пульта по USB Serial (115200): рядки «$…» (R2D2) або «RC …» (ESP-Bridge). Передаються як RC override, до 16 каналів. Не вибирайте порт польотника." = "Channels from the radio over USB Serial (115200): lines “$…” (R2D2) or “RC …” (ESP-Bridge). Sent as RC override, up to 16 channels. Do not select the flight controller port.";
+"Не вибирайте порт польотника." = "Do not select the flight controller port.";

@@ -252,7 +252,7 @@ struct JoystickSheet: View {
                 Spacer()
             }
             Text(lk(j.vcp.status)).font(.caption).foregroundStyle(.secondary)
-            Text("Канали з пульта по USB Serial (115200): рядки «$…» (R2D2) або «RC …» (ESP-Bridge). Передаються як RC override, до 16 каналів. Не вибирайте порт польотника.").font(.caption2).foregroundStyle(.secondary)
+            Text("Не вибирайте порт польотника.").font(.caption2).foregroundStyle(.secondary)
             Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 5) {
                 GridRow {
                     Text(""); Text("Output")

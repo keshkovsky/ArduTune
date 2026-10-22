@@ -20,8 +20,8 @@ final class VCPRadio {
 
     func refreshPorts() {
         let names = (try? FileManager.default.contentsOfDirectory(atPath: "/dev")) ?? []
-        ports = names.filter { $0.hasPrefix("cu.") && !$0.contains("Bluetooth") && !$0.contains("debug-console") && !$0.contains("wlan") }.sorted().map { "/dev/" + $0 }
-        if port.isEmpty || !ports.contains(port) { port = ports.first(where: { $0.contains("usbmodem") }) ?? ports.first ?? "" }
+        ports = names.filter { $0.hasPrefix("cu.usbmodem") }.sorted().map { "/dev/" + $0 }
+        if port.isEmpty || !ports.contains(port) { port = ports.first ?? "" }
     }
 
     /// Значення каналів для override; 0 = «не чіпати». Якщо кадрів давно немає, повертає нулі.

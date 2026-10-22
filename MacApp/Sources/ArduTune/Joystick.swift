@@ -223,6 +223,7 @@ struct JoystickSheet: View {
             }.pickerStyle(.segmented).labelsHidden().frame(width: 300)
             if j.useVCP { vcpBody } else { joystickBody }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(20)
         .frame(minWidth: 900, minHeight: 640)
         .onAppear { j.start(); syncMap(); if j.useVCP { j.vcp.refreshPorts() } }
@@ -239,6 +240,7 @@ struct JoystickSheet: View {
     var vcpBody: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
+                Text("VCP").font(.headline)
                 Picker("", selection: Binding(get: { j.vcp.port }, set: { j.vcp.port = $0; if j.vcp.open { j.vcp.openPort() } })) {
                     if j.vcp.ports.isEmpty { Text("— немає портів —").tag("") }
                     ForEach(j.vcp.ports, id: \.self) { Text(lk($0.replacingOccurrences(of: "/dev/", with: ""))).tag($0) }
@@ -252,15 +254,18 @@ struct JoystickSheet: View {
             Text(lk(j.vcp.status)).font(.caption).foregroundStyle(.secondary)
             Text("Канали з пульта по USB Serial (115200): рядки «$…» (R2D2) або «RC …» (ESP-Bridge). Передаються як RC override, до 16 каналів. Не вибирайте порт польотника.").font(.caption2).foregroundStyle(.secondary)
             Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 5) {
+                GridRow {
+                    Text(""); Text("Output")
+                }.font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 ForEach(0..<16, id: \.self) { i in
                     GridRow {
                         Text("RC \(i + 1)").font(.system(.body, design: .monospaced).weight(.semibold))
-                        OutBar(value: j.vcp.receiving ? j.vcp.channels[i] : 0).frame(width: 260, height: 18)
+                        OutBar(value: j.vcp.receiving ? j.vcp.channels[i] : 0).frame(width: 150, height: 18)
                     }
                 }
             }
         }
-        .onChange(of: j.enabled) { _, _ in }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
     var joystickBody: some View {

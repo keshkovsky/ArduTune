@@ -257,7 +257,7 @@ struct VideoTab: View {
                                 Menu("Шаблони") { ForEach(Array(VideoStore.presets.enumerated()), id: \.offset) { _, p in Button(lk(p.0)) { v.pipeline = p.1 } } }.frame(width: 110)
                                 Button("Start") { v.startGStreamer() }.disabled(!VideoStore.gstAvailable)
                                 Button("Stop") { v.stopAll() }
-                                if !VideoStore.gstAvailable { Label("GStreamer.framework не знайдено", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange) }
+                                GStreamerMissingNote()
                             }
                             TextEditor(text: Binding(get: { v.pipeline }, set: { v.pipeline = $0 }))
                                 .font(.system(.callout, design: .monospaced)).frame(height: 84)
@@ -287,6 +287,7 @@ struct VideoTab: View {
                                 Button("Stop") { v.stopAll() }
                                 Button("Типові значення") { herelinkIP = "192.168.0.10"; herelinkPort = 8554; herelinkPath = "fpv_stream" }.controlSize(.small)
                             }
+                            GStreamerMissingNote()
                             Text("Потік Herelink / Cube Controller по RTSP (H.264, мінімальна затримка). Потрібні GStreamer.framework і з'єднання з мережею Herelink.").font(.caption2).foregroundStyle(.secondary)
                         }.padding(6)
                     }
@@ -379,5 +380,17 @@ struct VideoWindow: View {
             .padding(14)
         }
         .frame(width: 300, height: 460)
+    }
+}
+
+/// Підказка з посиланням на встановлення, якщо GStreamer.framework не знайдено.
+struct GStreamerMissingNote: View {
+    var body: some View {
+        if !VideoStore.gstAvailable {
+            HStack(spacing: 6) {
+                Label("GStreamer.framework не знайдено", systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+                Link("Завантажити GStreamer", destination: URL(string: "https://gstreamer.freedesktop.org/download/#macos")!)
+            }.font(.caption)
+        }
     }
 }

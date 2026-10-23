@@ -310,7 +310,7 @@ final class OrbitSCNView: SCNView {
     var azimuth = 180.0, elevation = 35.0, distance = 8000.0
     var target = SCNVector3(0, 0, 0)
     var locked = false
-    var minDistance = 50.0, maxDistance = 400_000.0
+    var minDistance = 30.0, maxDistance = 1_200_000.0
     var onCamera: ((Double, Double, Double) -> Void)?
     let camNode = SCNNode()
 
@@ -328,6 +328,7 @@ final class OrbitSCNView: SCNView {
     func apply(notify: Bool = true) {
         elevation = min(max(elevation, 5), 88)
         distance = min(max(distance, minDistance), maxDistance)
+        camNode.camera?.zNear = max(2, distance * 0.01); camNode.camera?.zFar = max(600_000, distance * 8)
         azimuth = azimuth.truncatingRemainder(dividingBy: 360); if azimuth < 0 { azimuth += 360 }
         let a = azimuth * .pi / 180, e = elevation * .pi / 180
         let d = CGFloat(distance)
@@ -349,42 +350,48 @@ final class OrbitSCNView: SCNView {
         return (Double(n.x) + Double(f.x - n.x) * t, Double(n.z) + Double(f.z - n.z) * t)
     }
 
-    /// Обертання навколо точки на площині цілі: вона лишається на екрані на місці.
-    private func rotate(da: Double, dEl: Double, around p: (x: Double, z: Double)?) {
+    /// Жорстке обертання камери разом із ціллю навколо точки p (на площині цілі): точка лишається на екрані на місці.
+    private func rotate(da: Double, dEl: Double, around p: (x: Double, y: Double, z: Double)?) {
         guard !locked else { return }
-        let oldEl = elevation
         let newEl = min(max(elevation + dEl, 5), 88)
-        let de = newEl - oldEl
-        if let p {
-            let py = Double(target.y)
-            let a0 = azimuth * .pi / 180, e0 = oldEl * .pi / 180
-            let cx = Double(target.x) + distance * cos(e0) * sin(a0)
-            let cy = Double(target.y) + distance * sin(e0)
-            let cz = Double(target.z) - distance * cos(e0) * cos(a0)
-            let vx = cx - p.x, vy = cy - py, vz = cz - p.z
-            let L = (vx * vx + vy * vy + vz * vz).squareRoot()
-            if L > 1 {
-                let av = atan2(vx, -vz) + da * .pi / 180
-                let ev = min(max(asin(max(-1, min(1, vy / L))) + de * .pi / 180, 0.02), 1.5)
-                let nx = p.x + L * cos(ev) * sin(av), ny = py + L * sin(ev), nz = p.z - L * cos(ev) * cos(av)
-                azimuth += da; elevation = newEl
-                let a1 = azimuth * .pi / 180, e1 = elevation * .pi / 180
-                target = SCNVector3(nx - distance * cos(e1) * sin(a1), ny - distance * sin(e1), nz + distance * cos(e1) * cos(a1))
-                apply()
-                return
-            }
-        }
-        azimuth += da; elevation = newEl
+        let de = newEl - elevation
+        guard let p else { azimuth += da; elevation = newEl; apply(); return }
+        var wx = Double(target.x) - p.x, wy = Double(target.y) - p.y, wz = Double(target.z) - p.z
+        let th = da * .pi / 180
+        (wx, wz) = (wx * cos(th) - wz * sin(th), wx * sin(th) + wz * cos(th))
+        azimuth += da
+        let a = azimuth * .pi / 180
+        let hx = sin(a), hz = -cos(a)
+        let s = wx * hx + wz * hz
+        let lx = wx - s * hx, lz = wz - s * hz
+        let dl = de * .pi / 180
+        let s2 = s * cos(dl) - wy * sin(dl), y2 = s * sin(dl) + wy * cos(dl)
+        target = SCNVector3(p.x + lx + s2 * hx, p.y + y2, p.z + lz + s2 * hz)
+        elevation = newEl
         apply()
     }
+
+    private var grab: (x: Double, z: Double)?
+    private var scrollPivot: (x: Double, y: Double, z: Double)?
 
     /// ЛКМ: зміщення; ПКМ: обертання. Двопальцева прокрутка без натискання теж обертає (див. scrollWheel).
     override func rightMouseDown(with e: NSEvent) { pivot = groundPoint(e).map { ($0.x, Double(target.y), $0.z) } }
     override func rightMouseUp(with e: NSEvent) { pivot = nil }
     override func rightMouseDragged(with e: NSEvent) {
-        rotate(da: Double(e.deltaX) * 0.35, dEl: Double(e.deltaY) * 0.3, around: pivot.map { ($0.x, $0.z) })
+        rotate(da: Double(e.deltaX) * 0.35, dEl: Double(e.deltaY) * 0.3, around: pivot)
     }
-    override func mouseDragged(with e: NSEvent) { guard !locked else { return }; pan(dx: e.deltaX, dy: e.deltaY) }
+    override func mouseDown(with e: NSEvent) { grab = groundPoint(e) }
+    override func mouseUp(with e: NSEvent) { grab = nil }
+    /// Перетягування: точка землі, за яку «схопили» карту, лишається під курсором (швидкість не залежить від масштабу).
+    override func mouseDragged(with e: NSEvent) {
+        guard !locked else { return }
+        guard let g = grab, let p = groundPoint(e) else { pan(dx: e.deltaX, dy: e.deltaY); return }
+        var dx = g.x - p.x, dz = g.z - p.z
+        let len = (dx * dx + dz * dz).squareRoot(), lim = distance * 3
+        if len > lim { dx *= lim / len; dz *= lim / len }
+        target.x += CGFloat(dx); target.z += CGFloat(dz)
+        apply()
+    }
     override func otherMouseDragged(with e: NSEvent) { guard !locked else { return }; pan(dx: e.deltaX, dy: e.deltaY) }
     func pan(dx: CGFloat, dy: CGFloat) {
         let a = azimuth * .pi / 180
@@ -417,10 +424,15 @@ final class OrbitSCNView: SCNView {
     }
     /// Двопальцева прокрутка трекпадом без натискання обертає карту навколо точки під курсором; масштаб лише жестом (magnify).
     override func scrollWheel(with e: NSEvent) {
-        guard e.hasPreciseScrollingDeltas else { return }
-        rotate(da: Double(e.scrollingDeltaX) * 0.3, dEl: Double(e.scrollingDeltaY) * 0.25, around: groundPoint(e).map { ($0.x, $0.z) })
+        guard e.hasPreciseScrollingDeltas else {      // звичайне коліщатко миші: масштаб
+            zoom(factor: pow(0.88, Double(e.scrollingDeltaY == 0 ? e.deltaY : e.scrollingDeltaY)), at: e); return
+        }
+        // Точка обертання фіксується на початку жесту й не «пливе» за курсором.
+        if e.phase.contains(.began) || scrollPivot == nil, let g = groundPoint(e) { scrollPivot = (g.x, Double(target.y), g.z) }
+        rotate(da: Double(e.scrollingDeltaX) * 0.3, dEl: Double(e.scrollingDeltaY) * 0.25, around: scrollPivot)
+        if e.momentumPhase.contains(.ended) || e.phase.contains(.cancelled) || (e.phase.contains(.ended) && e.momentumPhase.isEmpty) { scrollPivot = nil }
     }
-    override func magnify(with e: NSEvent) { zoom(factor: 1 / (1 + Double(e.magnification)), at: e) }
+    override func magnify(with e: NSEvent) { zoom(factor: 1 / (1 + Double(e.magnification) * 3), at: e) }
 }
 
 // MARK: - SwiftUI-обгортка

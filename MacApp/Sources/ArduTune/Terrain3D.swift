@@ -43,18 +43,19 @@ struct Terrain3D {
     /// Збирає рельєф і текстуру для області. `progress` викликається з текстом стану.
     static func build(minLat: Double, maxLat: Double, minLon: Double, maxLon: Double, layer: MapLayer, progress: @escaping @Sendable (String) -> Void) async -> Terrain3D {
         var t = Terrain3D()
-        // область: запас 25%, не менше ~1,6 км, не більше ~60 км
+        // область: запас 25%, не менше ~1,6 км, не більше ~300 км (маршрут має вміщатися повністю)
         let cl = (minLat + maxLat) / 2, co = (minLon + maxLon) / 2
         let cosL = max(0.2, cos(cl * .pi / 180))
         var halfLat = max((maxLat - minLat) / 2 * 1.25, 800 / 111_320.0)
         var halfLon = max((maxLon - minLon) / 2 * 1.25, 800 / (111_320.0 * cosL))
-        halfLat = min(halfLat, 30_000 / 111_320.0); halfLon = min(halfLon, 30_000 / (111_320.0 * cosL))
+        halfLat = min(halfLat, 150_000 / 111_320.0); halfLon = min(halfLon, 150_000 / (111_320.0 * cosL))
         // квадратна область у метрах
         let halfM = max(halfLat * 111_320, halfLon * 111_320 * cosL)
         halfLat = halfM / 111_320; halfLon = halfM / (111_320 * cosL)
         t.lat0 = cl; t.lon0 = co
         t.latMin = cl - halfLat; t.latMax = cl + halfLat; t.lonMin = co - halfLon; t.lonMax = co + halfLon
-        t.n = 72
+        let big = halfM > 30_000
+        t.n = big ? 110 : 72
         let side = t.n + 1
         // сітка вершин
         var pts: [(Double, Double)] = []
@@ -65,7 +66,7 @@ struct Terrain3D {
         progress("Рельєф: завантаження висот…")
         var ze = 13
         func erange(_ z: Int) -> (Int, Int, Int, Int) { (Int(tileX(t.lonMin, z)), Int(tileX(t.lonMax, z)), Int(tileY(t.latMax, z)), Int(tileY(t.latMin, z))) }
-        while ze > 5 { let r = erange(ze); if r.1 - r.0 + 1 <= 4 && r.3 - r.2 + 1 <= 4 { break }; ze -= 1 }
+        while ze > 5 { let r = erange(ze); if r.1 - r.0 + 1 <= (big ? 6 : 4) && r.3 - r.2 + 1 <= (big ? 6 : 4) { break }; ze -= 1 }
         let (ex0, ex1, ey0, ey1) = erange(ze)
         let enx = ex1 - ex0 + 1, eny = ey1 - ey0 + 1
         var mosaic = [Float](repeating: 0, count: enx * 256 * eny * 256)
@@ -107,7 +108,7 @@ struct Terrain3D {
         func range(_ z: Int) -> (Int, Int, Int, Int) {
             (Int(tileX(t.lonMin, z)), Int(tileX(t.lonMax, z)), Int(tileY(t.latMax, z)), Int(tileY(t.latMin, z)))
         }
-        while z > 6 { let r = range(z); if r.1 - r.0 + 1 <= 5 && r.3 - r.2 + 1 <= 5 { break }; z -= 1 }
+        while z > 6 { let r = range(z); if r.1 - r.0 + 1 <= (big ? 8 : 5) && r.3 - r.2 + 1 <= (big ? 8 : 5) { break }; z -= 1 }
         let layerTiles = layer.isTiles ? layer : .googleSat
         let overlay = TileOverlay(layer: layerTiles)
         let (x0, x1, y0, y1) = range(z)

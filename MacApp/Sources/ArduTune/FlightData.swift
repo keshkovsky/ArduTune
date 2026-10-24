@@ -26,9 +26,9 @@ struct FlightView: View {
     @AppStorage("fd.tabs") private var tabsCSV = FDTab.allCases.map(\.rawValue).joined(separator: ",")
     @AppStorage("hud.aspect") private var hudAspect = "auto"
     @AppStorage("hud.swap") private var hudSwap = false
-    @AppStorage("herelink.ip") private var herelinkIP = "192.168.0.10"
-    @AppStorage("herelink.port") private var herelinkPort = 8554
-    @AppStorage("herelink.path") private var herelinkPath = "fpv_stream"
+    private var herelinkIP: String { get { StreamSettings.shared.ip } nonmutating set { StreamSettings.shared.ip = newValue } }
+    private var herelinkPort: Int { StreamSettings.shared.port }
+    private var herelinkPath: String { StreamSettings.shared.path }
 
     var hudConfig: HUDConfig {
         var c = HUDConfig()

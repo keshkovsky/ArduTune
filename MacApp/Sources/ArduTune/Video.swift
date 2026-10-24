@@ -36,8 +36,9 @@ final class VideoStore: NSObject {
     var pingMs: Double?                 // nil: немає відповіді або адреса потоку невідома
     var pingHost: String?
     var frameAge = 0.0                  // секунд від останнього кадру
-    var pipeline: String = UserDefaults.standard.string(forKey: "video.pipeline") ?? VideoStore.presets[0].1 {
-        didSet { UserDefaults.standard.set(pipeline, forKey: "video.pipeline") }
+    var pipeline: String {
+        get { StreamSettings.shared.pipeline }
+        set { StreamSettings.shared.pipeline = newValue }
     }
 
     @ObservationIgnored let session = AVCaptureSession()
@@ -317,9 +318,10 @@ struct VideoOverlay: View {
 struct VideoTab: View {
     @Environment(Store.self) var s
     @Environment(\.openWindow) private var openWindow
-    @AppStorage("herelink.ip") private var herelinkIP = "192.168.0.10"
-    @AppStorage("herelink.port") private var herelinkPort = 8554
-    @AppStorage("herelink.path") private var herelinkPath = "fpv_stream"
+    private var st: StreamSettings { StreamSettings.shared }
+    private var herelinkIP: String { st.ip }
+    private var herelinkPort: Int { st.port }
+    private var herelinkPath: String { st.path }
     var v: VideoStore { s.video }
     var herelinkURL: String { "rtsp://\(herelinkIP):\(herelinkPort)/\(herelinkPath)" }
 
@@ -366,22 +368,21 @@ struct VideoTab: View {
                             Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 8) {
                                 GridRow {
                                     Text("IP-адреса")
-                                    TextField("192.168.0.10", text: $herelinkIP).textFieldStyle(.roundedBorder).frame(width: 160)
-                                    Text("Порт"); TextField("8554", value: $herelinkPort, format: .number.grouping(.never)).textFieldStyle(.roundedBorder).frame(width: 70)
+                                    TextField("192.168.0.10", text: Binding(get: { st.ip }, set: { st.ip = $0 })).textFieldStyle(.roundedBorder).frame(width: 160)
+                                    Text("Порт"); TextField("8554", value: Binding(get: { st.port }, set: { st.port = $0 }), format: .number.grouping(.never)).textFieldStyle(.roundedBorder).frame(width: 70)
                                 }
                                 GridRow {
                                     Text("Потік")
-                                    TextField("fpv_stream", text: $herelinkPath).textFieldStyle(.roundedBorder).frame(width: 160)
+                                    TextField("fpv_stream", text: Binding(get: { st.path }, set: { st.path = $0 })).textFieldStyle(.roundedBorder).frame(width: 160)
                                     Color.clear.frame(width: 1, height: 1); Color.clear.frame(width: 1, height: 1)
                                 }
                             }
-                            Text(LocalizedStringKey(herelinkURL)).font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary).textSelection(.enabled)
                             HStack {
                                 Button("Start") {
                                     v.startGStreamer("rtspsrc location=\(herelinkURL) latency=0 ! rtph264depay ! h264parse ! avdec_h264"); v.showInHUD = true
                                 }.disabled(!VideoStore.gstAvailable)
                                 Button("Stop") { v.stopAll() }
-                                Button("Типові значення") { herelinkIP = "192.168.0.10"; herelinkPort = 8554; herelinkPath = "fpv_stream" }.controlSize(.small)
+                                Button("Типові значення") { st.resetHerelink() }.controlSize(.small)
                             }
                             GStreamerMissingNote()
                             Text("Потік Herelink / Cube Controller по RTSP (H.264, мінімальна затримка). Потрібні GStreamer.framework і з'єднання з мережею Herelink.").font(.caption2).foregroundStyle(.secondary)

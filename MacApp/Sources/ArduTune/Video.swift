@@ -265,7 +265,7 @@ struct VideoSurface: View {
             case .none: ContentUnavailableView("Відео не запущено", systemImage: "video.slash")
             }
             if overlay && video.hudOverlay && video.running { VideoOverlay(t: t) }
-            if video.showStats && video.active == .gstreamer { VideoStatsBadge(video: video).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing).padding(8) }
+            if video.showStats && video.active == .gstreamer { VideoStatsBadge(video: video).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).padding(10) }
         }
     }
 }

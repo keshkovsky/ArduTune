@@ -116,9 +116,6 @@ struct HUDView: View {
     private var ekfOK: Bool { (t.ekfFlags & 7) == 7 }
     private var vibeMax: Double { max(t.vibeX, t.vibeY, t.vibeZ) }
     var body: some View {
-        if config.theme.id == "mili" { MiliHUD(t: t, config: config, alerts: alerts) } else { classicBody }
-    }
-    private var classicBody: some View {
         Canvas { ctx, size in
             let w = size.width, h = size.height
             let u = max(0.7, min(1.35, min(w, h * 1.25) / 520)) * CGFloat(config.scale)

@@ -28,11 +28,7 @@ struct HUDTheme: Equatable {
     static let mono = HUDTheme(id: "mono", name: "Моно", skyTop: rgb(0.30, 0.30, 0.32), skyBottom: rgb(0.42, 0.42, 0.44), groundTop: rgb(0.17, 0.17, 0.18), groundBottom: rgb(0.09, 0.09, 0.10),
                                ink: .white, accent: rgb(1.0, 0.85, 0.20), plate: Color.black.opacity(0.28))
 
-    /// MILI: моно-блакитний мінімалістичний HUD зі своєю розкладкою (див. MiliHUD): чорний фон, блакитні лінії, червоні мітки.
-    static let mili = HUDTheme(id: "mili", name: "MILI", skyTop: .black, skyBottom: .black, groundTop: .black, groundBottom: .black,
-                               ink: rgb(0.36, 0.86, 0.92), accent: rgb(1.0, 0.22, 0.26), plate: Color.black.opacity(0.6))
-
-    static let all: [HUDTheme] = [.classic, .graphite, .arctic, .tactical, .night, .day, .mono, .mili]
+    static let all: [HUDTheme] = [.classic, .graphite, .arctic, .tactical, .night, .day, .mono]
 
     /// Тема з урахуванням власних кольорів користувача (hex; порожній рядок = колір теми).
     static func make(id: String, sky: String = "", ground: String = "", ink: String = "", accent: String = "") -> HUDTheme {

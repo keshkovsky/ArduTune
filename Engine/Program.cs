@@ -1051,6 +1051,8 @@ class Program
         app.MapPost("/cmd/aux", (int fn, int pos) => { link.Cmd(MAV_CMD.DO_AUX_FUNCTION, fn, pos); return Results.Ok(); });
         app.MapPost("/cmd/roi", (double lat, double lon, float alt) => { link.CmdInt(MAV_CMD.DO_SET_ROI_LOCATION, lat, lon, alt, (byte)MAV_FRAME.GLOBAL_RELATIVE_ALT_INT); return Results.Ok(); });
         app.MapPost("/cmd/roinone", () => { link.Cmd(MAV_CMD.DO_SET_ROI_NONE); return Results.Ok(); });
+        // Gripper: action 0 = відпустити, 1 = захопити (MAV_CMD_DO_GRIPPER: p1 = номер gripper, p2 = дія)
+        app.MapPost("/cmd/gripper", (int action) => { link.Cmd(MAV_CMD.DO_GRIPPER, 1, action == 0 ? 0 : 1); return Results.Ok(); });
         app.MapPost("/cmd/camtrigger", () => { link.Cmd(MAV_CMD.DO_DIGICAM_CONTROL, 0, 0, 0, 0, 1); return Results.Ok(); });
         app.MapPost("/cmd/sethome", (double lat, double lon) => { link.CmdInt(MAV_CMD.DO_SET_HOME, lat, lon, (float)link.GroundAmsl(), (byte)MAV_FRAME.GLOBAL, 0); return Results.Ok(); });
         app.MapPost("/cmd/goto", (double lat, double lon, float alt) => { link.GoTo(lat, lon, alt); return Results.Ok(); });

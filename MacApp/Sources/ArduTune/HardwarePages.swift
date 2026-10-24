@@ -72,11 +72,13 @@ struct OptionalHardwareView: View {
         ConfigGate {
             PageTitle(title: String(localized: "Додаткове обладнання"), subtitle: String(localized: "Далекомір, камера, підвіс, оптичний потік і датчики перешкод. Показано лише те, що є в прошивці вашого польотника."))
             Picker("", selection: $tab) {
-                Text("Далекомір").tag("rng"); Text("Камера").tag("cam"); Text("Підвіс").tag("mnt"); Text("VTX").tag("vtx"); Text("Оптичний потік").tag("flow"); Text("Перешкоди").tag("prx")
+                Text("Далекомір").tag("rng"); Text("Камера").tag("cam"); Text("Підвіс").tag("mnt"); Text("VTX").tag("vtx"); Text("Оптичний потік").tag("flow"); Text("Перешкоди").tag("prx"); Text("Парашут").tag("chute"); Text("Захват").tag("grip")
             }.pickerStyle(.segmented).labelsHidden()
             switch tab {
             case "cam": camera
             case "mnt": gimbal
+            case "chute": parachute
+            case "grip": gripper
             case "vtx": vtx
             case "flow":
                 ParamsCard(title: String(localized: "Оптичний потік"), icon: "viewfinder", text: String(localized: "Датчик руху відносно землі для утримання позиції без GPS. Потрібен також далекомір, спрямований вниз."), params: ["FLOW_TYPE", "FLOW_ORIENT_YAW", "FLOW_POS_X", "FLOW_POS_Y", "FLOW_POS_Z", "FLOW_FXSCALER", "FLOW_FYSCALER", "FLOW_HGT_OVR"])
@@ -146,6 +148,57 @@ struct OptionalHardwareView: View {
             ParamsCard(title: String(localized: "Керування камерою"), icon: "camera", text: String(localized: "Як апарат спускає затвор і як часто."), params: Self.cam)
             if !Self.cam.contains(where: { ps.has($0) }) { Text("У цій прошивці немає параметрів керування камерою.").font(.callout).foregroundStyle(.secondary) }
             Label("Камера також спускається командами місії (Mission): «Фото кожні N м» і «Керування камерою».", systemImage: "map").font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    // MARK: Парашут
+
+    static let chute = ["CHUTE_ENABLED", "CHUTE_TYPE", "CHUTE_SERVO_ON", "CHUTE_SERVO_OFF", "CHUTE_ALT_MIN", "CHUTE_DELAY_MS", "CHUTE_CRT_SINK", "CHUTE_OPTIONS"]
+
+    var parachute: some View {
+        let out = outputs([27])
+        return VStack(alignment: .leading, spacing: 14) {
+            if !ps.has("CHUTE_ENABLED") {
+                ContentUnavailableView("Парашут недоступний", systemImage: "arrow.down.to.line", description: Text("У цій прошивці немає параметрів парашута (CHUTE_*). Парашут підтримують Copter і Plane."))
+            } else {
+                Card(title: String(localized: "Парашут"), icon: "arrow.down.to.line", text: String(localized: "Аварійний випуск за каналом пульта, командою або автоматично при критичній швидкості падіння. Перед польотом перевірте механізм без гвинтів і зі знятим парашутом.")) {
+                    if (ps.val("CHUTE_ENABLED") ?? 0) == 0 {
+                        Label("Парашут вимкнено (CHUTE_ENABLED = 0). Увімкніть його й перезавантажте автопілот.", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange)
+                    }
+                    if out.isEmpty { Label("Жоден вихід серво не має функції «Parachute» (SERVOn_FUNCTION = 27). Призначте її у вкладці Servo Output (для типу «Servo»), або використайте реле.", systemImage: "info.circle").font(.caption).foregroundStyle(.secondary) }
+                    else { Label(lk(loc("Випуск парашута виведено на: ") + out.map { "SERVO\($0)" }.joined(separator: ", ")), systemImage: "checkmark.circle").font(.caption).foregroundStyle(.secondary) }
+                    Label("Для випуску за каналом пульта призначте йому функцію «Parachute Release» (RCx_OPTION = 22), «Parachute Enable» (21) або «Parachute 3pos» (23).", systemImage: "dot.radiowaves.left.and.right").font(.caption).foregroundStyle(.secondary)
+                }
+                ParamsCard(title: String(localized: "Механізм і умови випуску"), icon: "slider.horizontal.3", text: String(localized: "Тип пристрою, положення серво, мінімальна висота, затримка й критична швидкість падіння."), params: Self.chute)
+            }
+        }
+    }
+
+    // MARK: Захват (gripper)
+
+    static let grip = ["GRIP_ENABLE", "GRIP_TYPE", "GRIP_GRAB", "GRIP_RELEASE", "GRIP_NEUTRAL", "GRIP_REGRAB", "GRIP_AUTOCLOSE", "GRIP_CAN_ID"]
+
+    var gripper: some View {
+        let out = outputs([28])
+        return VStack(alignment: .leading, spacing: 14) {
+            if !ps.has("GRIP_ENABLE") {
+                ContentUnavailableView("Захват недоступний", systemImage: "hand.raised", description: Text("У цій прошивці немає параметрів захвату (GRIP_*)."))
+            } else {
+                Card(title: String(localized: "Захват (Gripper)"), icon: "hand.raised", text: String(localized: "Серво- або електромагнітний захват для вантажу. Керується каналом пульта, командою або з місії.")) {
+                    if (ps.val("GRIP_ENABLE") ?? 0) == 0 {
+                        Label("Захват вимкнено (GRIP_ENABLE = 0). Увімкніть його й перезавантажте автопілот.", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange)
+                    }
+                    HStack {
+                        Button { EngineAPI.post("/cmd/gripper?action=1") { ok, _ in note = ok ? "Команду «захопити» надіслано" : "Не вдалося надіслати" } } label: { Label("Захопити", systemImage: "hand.point.up.left.fill") }.disabled(!s.connected)
+                        Button { EngineAPI.post("/cmd/gripper?action=0") { ok, _ in note = ok ? "Команду «відпустити» надіслано" : "Не вдалося надіслати" } } label: { Label("Відпустити", systemImage: "hand.raised.fill") }.disabled(!s.connected)
+                        if let n = note { Text(LocalizedStringKey(n)).font(.caption).foregroundStyle(.secondary) }
+                    }
+                    if out.isEmpty { Label("Жоден вихід серво не має функції «Gripper» (SERVOn_FUNCTION = 28). Призначте її у вкладці Servo Output (для типу «Servo»).", systemImage: "info.circle").font(.caption).foregroundStyle(.secondary) }
+                    else { Label(lk(loc("Захват виведено на: ") + out.map { "SERVO\($0)" }.joined(separator: ", ")), systemImage: "checkmark.circle").font(.caption).foregroundStyle(.secondary) }
+                    Label("Для керування каналом пульта призначте йому функцію «Gripper» (RCx_OPTION = 19). У місії є команда «Захват» (DO_GRIPPER).", systemImage: "dot.radiowaves.left.and.right").font(.caption).foregroundStyle(.secondary)
+                }
+                ParamsCard(title: String(localized: "Тип і положення серво"), icon: "slider.horizontal.3", text: String(localized: "Тип захвату та значення PWM для «захопити», «відпустити» й нейтралі."), params: Self.grip)
+            }
         }
     }
 

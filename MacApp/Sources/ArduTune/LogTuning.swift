@@ -218,7 +218,7 @@ enum TuneAdvisor {
                     tipList = ["Перевірте гвинти, кріплення моторів і рами; потім налаштуйте гармонійний нотч-фільтр (див. нижче)."]
                 }
                 out.append(LogFinding(level: severe ? .bad : .warn,
-                    title: String(localized: "Контур \(ax.nameGen) коливається"),
+                    title: String(localized: "Контур \(loc(ax.nameGen)) коливається"),
                     detail: String(format: loc("Графік реальної швидкості обертання (Act) відрізняється від очікуваної (Tar): з'являється стійке коливання %.1f Гц з амплітудою близько %.0f °/с. "), p.f, ampDeg) + cause,
                     tips: tipList + [String(localized: "Рекомендується зменшити значення на \(pct), як показано нижче. Застосовуйте, коли польотник підключено; перевіряйте на коротких польотах.")],
                     time: worst?.t, keys: keys, window: window, changes: ch))
@@ -229,13 +229,13 @@ enum TuneAdvisor {
                 let ms = lg.lag * 1000
                 if lg.lag > (ax.rollPitch ? 0.08 : 0.18) || lg.gain < (ax.rollPitch ? 0.75 : 0.55) {
                     let ch = [chg("_P", 1.25, "збільшити підсилення, щоб швидше доганяти бажане значення"), (ax.rollPitch && !plane) ? chg("_I", 1.25, "I має дорівнювати P") : nil].compactMap { $0 }
-                    out.append(LogFinding(level: .warn, title: String(localized: "Реакція по \(ax.nameGen) млява"),
+                    out.append(LogFinding(level: .warn, title: String(localized: "Реакція по \(loc(ax.nameGen)) млява"),
                         detail: String(format: loc("Графік реальної швидкості обертання (Act) відстає від очікуваної (Tar) приблизно на %.0f мс і досягає лише %.0f %% бажаного значення. Причина: підсилення P замале (чи занадто сильний фільтр додає запізнення)."), ms, lg.gain * 100),
                         tips: ["Збільшуйте P кроками (за керівництвом: у кроків по 50 % до появи коливань, потім відступити на 10 %, далі ще на 25 %); тут запропоновано обережний крок +25 %.", "Якщо коливання з'являться, поверніть попереднє значення."],
                         time: worst?.t, keys: keys, window: window, changes: ch))
                 } else if lg.gain > 1.25 {
                     let ch = [chg("_P", 0.85, "зменшити підсилення, щоб прибрати перерегулювання")].compactMap { $0 }
-                    out.append(LogFinding(level: .warn, title: String(localized: "Перерегулювання по \(ax.nameGen)"),
+                    out.append(LogFinding(level: .warn, title: String(localized: "Перерегулювання по \(loc(ax.nameGen))"),
                         detail: String(format: loc("Реальна швидкість обертання (Act) перевищує очікувану (Tar) у %.1f раза. Причина: надто агресивне підсилення P або слабке демпфування (D)."), lg.gain),
                         tips: ["Збільшіть демпфування D на 10–20 % або зменшіть P; перевіряйте після кожної зміни."],
                         time: worst?.t, keys: keys, window: window, changes: ch))
@@ -248,7 +248,7 @@ enum TuneAdvisor {
             if hf > 0.06 {
                 var ch = [chg("_FLTD", 0.75, "нижча частота зрізу фільтра D")].compactMap { $0 }
                 if let g = params["INS_GYRO_FILTER"] { ch.append(ParamChange(name: "INS_GYRO_FILTER", op: .set(max(10, (g * 0.75).rounded())), why: String(localized: "нижчий зріз фільтра гіроскопа прибирає шум (за ціну запізнення)"))) }
-                out.append(LogFinding(level: .warn, title: String(localized: "Шум у сигналі швидкості по \(ax.nameGen)"),
+                out.append(LogFinding(level: .warn, title: String(localized: "Шум у сигналі швидкості по \(loc(ax.nameGen))"),
                     detail: String(format: loc("У реальній швидкості обертання (Act) є помітний високочастотний шум (%.0f %% потужності вище 40 Гц). Причина: вібрація, яку не прибрано фільтрами; шум через D-складову гріє мотори й додає хитання."), hf * 100),
                     tips: ["Спершу усуньте вібрацію (гвинти, кріплення), потім налаштуйте гармонійний нотч-фільтр: він дозволяє залишити вищий зріз гіро-фільтра й менше запізнення.", "Фільтри додають запізнення: не зменшуйте зрізи без потреби."],
                     time: nil, keys: ["\(ax.pid).D"], window: window, changes: ch))
@@ -266,13 +266,13 @@ enum TuneAdvisor {
                             if lg.lag > 0.3 && lg.gain > 0.8 {
                                 let ch = [ax.angP.flatMap { has($0) ? ParamChange(name: $0, op: .scale(1.2), why: String(localized: "швидший вихід на заданий кут")) : nil },
                                           plane ? ax.tconst.flatMap { has($0) ? ParamChange(name: $0, op: .scale(0.8), why: String(localized: "менша постійна часу: швидший вихід на заданий кут")) : nil } : nil].compactMap { $0 }
-                                out.append(LogFinding(level: .info, title: String(localized: "Кут \(ax.nameGen) досягає заданого повільно"),
+                                out.append(LogFinding(level: .info, title: String(localized: "Кут \(loc(ax.nameGen)) досягає заданого повільно"),
                                     detail: String(format: loc("Графік реального кута (%@) відстає від очікуваного (%@) приблизно на %.0f мс. Причина: підсилення кутового контуру замале (апарат «ледачий» на команди)."), an, dn, lg.lag * 1000),
                                     tips: ["Збільшуйте на 10–20 % і перевіряйте на коливання; завелике значення дає коливання по куту (за керівництвом)."],
                                     time: nil, keys: ["ATT.\(dn)", "ATT.\(an)"], window: window, changes: ch))
                             } else if lg.gain > 1.25 {
                                 let ch = [ax.angP.flatMap { has($0) ? ParamChange(name: $0, op: .scale(0.8), why: String(localized: "перегойдування по куту")) : nil }].compactMap { $0 }
-                                out.append(LogFinding(level: .warn, title: String(localized: "Перерегулювання по куту \(ax.nameGen)"),
+                                out.append(LogFinding(level: .warn, title: String(localized: "Перерегулювання по куту \(loc(ax.nameGen))"),
                                     detail: String(format: loc("Реальний кут (%@) перевищує очікуваний (%@) у %.1f раза. Причина: кутовий контур занадто різкий."), an, dn, lg.gain),
                                     tips: ["Зменшіть ATC_ANG_*_P на 20 %; завелике значення дає коливання по крену й тангажу."],
                                     time: nil, keys: ["ATT.\(dn)", "ATT.\(an)"], window: window, changes: ch))

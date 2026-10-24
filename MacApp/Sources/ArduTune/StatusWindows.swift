@@ -1,51 +1,78 @@
 import SwiftUI
 
-/// Вертикальний датчик з двома порогами (як у Mission Planner): зелена зона, жовта/оранжева, червона.
-struct Gauge: View {
+/// Горизонтальна шкала з порогами (жовтий/червоний): значення, смужка й риски порогів.
+struct MetricBar: View {
+    let title: String
     let value: Double
     let maxValue: Double
     let warn: Double
     let bad: Double
-    let label: String
-    var warnLabel: String
-    var badLabel: String
+    var format = "%.2f"
+
+    private var color: Color { value >= bad ? .red : (value >= warn ? .orange : .green) }
 
     var body: some View {
-        VStack(spacing: 8) {
-            ZStack(alignment: .bottom) {
-                RoundedRectangle(cornerRadius: 5)
-                    .fill(LinearGradient(colors: [Color(white: 0.55), Color(white: 0.22)], startPoint: .leading, endPoint: .trailing))
-                GeometryReader { g in
-                    let h = g.size.height
-                    let f = CGFloat(min(max(value / maxValue, 0), 1))
-                    VStack(spacing: 0) {
-                        Spacer(minLength: 0)
-                        Rectangle().fill(color.opacity(0.85)).frame(height: h * f)
-                    }
-                    line(at: h * (1 - CGFloat(bad / maxValue)), text: badLabel)
-                    line(at: h * (1 - CGFloat(warn / maxValue)), text: warnLabel)
-                }
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(lk(title)).font(.callout)
+                Spacer()
+                Text(String(format: format, value)).font(.callout.monospacedDigit().weight(.medium)).foregroundStyle(color)
             }
-            .frame(width: 92, height: 250)
-            .clipShape(RoundedRectangle(cornerRadius: 5))
-            .overlay(RoundedRectangle(cornerRadius: 5).stroke(.gray.opacity(0.6), lineWidth: 1))
-            Text(LocalizedStringKey(label)).font(.callout).multilineTextAlignment(.center).frame(width: 96)
-            Text(String(format: "%.2f", value)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-        }
-    }
-
-    var color: Color { value >= bad ? .red : (value >= warn ? .orange : .green) }
-
-    func line(at y: CGFloat, text: String) -> some View {
-        ZStack(alignment: .topLeading) {
-            Rectangle().fill(.red).frame(height: 2).offset(y: y)
-            Text(LocalizedStringKey(text)).font(.system(size: 12)).foregroundStyle(.white.opacity(0.9)).offset(x: 4, y: y - 16)
+            GeometryReader { g in
+                let w = g.size.width
+                ZStack(alignment: .leading) {
+                    Capsule().fill(.quaternary.opacity(0.6))
+                    Capsule().fill(color.gradient).frame(width: max(4, w * CGFloat(min(max(value / maxValue, 0), 1))))
+                    ForEach([warn, bad], id: \.self) { t in
+                        Rectangle().fill(.secondary.opacity(0.7)).frame(width: 1, height: 10).offset(x: w * CGFloat(t / maxValue) - 0.5)
+                    }
+                }
+            }.frame(height: 6)
         }
     }
 }
 
-/// Окреме вікно «EKF Status».
-struct EKFStatusView: View {
+/// Позначка стану (точка + текст) для прапорців.
+struct FlagChip: View {
+    let name: String
+    let on: Bool
+    let required: Bool
+    private var color: Color { on ? .green : (required ? .red : .secondary.opacity(0.6)) }
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle().fill(color).frame(width: 7, height: 7)
+            Text(name).font(.system(.caption, design: .monospaced)).foregroundStyle(on || !required ? Color.primary : Color.red)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 8).padding(.vertical, 5)
+        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+    }
+}
+
+struct StatusSection<Content: View>: View {
+    let title: String
+    var badge: (String, Color)?
+    @ViewBuilder var content: Content
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(lk(title)).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+                Spacer()
+                if let b = badge {
+                    Text(lk(b.0)).font(.caption.weight(.semibold)).foregroundStyle(b.1)
+                        .padding(.horizontal, 8).padding(.vertical, 2).background(b.1.opacity(0.15), in: Capsule())
+                }
+            }
+            content
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+/// Панель «EKF Status»: дисперсії фільтра й прапорці (вкладка внизу Flight Data і окреме вікно).
+struct EKFPanel: View {
     @Environment(Store.self) var s
 
     static let flags: [(Int, String, Bool)] = [
@@ -56,69 +83,79 @@ struct EKFStatusView: View {
 
     var body: some View {
         let t = s.t
-        HStack(alignment: .top, spacing: 30) {
-            VStack(spacing: 16) {
-                Text("EKF Status").font(.title.bold())
-                HStack(alignment: .top, spacing: 14) {
-                    Gauge(value: t.ekfVelVar, maxValue: 1, warn: 0.5, bad: 0.8, label: "Velocity", warnLabel: "0.5", badLabel: "0.8")
-                    Gauge(value: t.ekfPosHVar, maxValue: 1, warn: 0.5, bad: 0.8, label: "Position\n(Horiz)", warnLabel: "0.5", badLabel: "0.8")
-                    Gauge(value: t.ekfPosVVar, maxValue: 1, warn: 0.5, bad: 0.8, label: "Position\n(Vert)", warnLabel: "0.5", badLabel: "0.8")
-                    Gauge(value: t.ekfCompassVar, maxValue: 1, warn: 0.5, bad: 0.8, label: "Compass", warnLabel: "0.5", badLabel: "0.8")
-                    Gauge(value: t.ekfTerrainVar, maxValue: 1, warn: 0.5, bad: 0.8, label: "Terrain", warnLabel: "0.5", badLabel: "0.8")
+        let needed = Self.flags.filter(\.2).reduce(0) { $0 | $1.0 }
+        let ready = s.connected && (t.ekfFlags & needed) == needed
+        let worst = max(t.ekfVelVar, t.ekfPosHVar, t.ekfPosVVar, t.ekfCompassVar)
+        let badge: (String, Color) = !s.connected ? ("Немає зв'язку", .secondary) : (ready && worst < 0.8 ? ("Готовий", .green) : ("Не готовий", .red))
+        ScrollView {
+            HStack(alignment: .top, spacing: 14) {
+                StatusSection(title: "Variances", badge: badge) {
+                    VStack(spacing: 12) {
+                        MetricBar(title: "Velocity", value: t.ekfVelVar, maxValue: 1, warn: 0.5, bad: 0.8)
+                        MetricBar(title: "Position (Horiz)", value: t.ekfPosHVar, maxValue: 1, warn: 0.5, bad: 0.8)
+                        MetricBar(title: "Position (Vert)", value: t.ekfPosVVar, maxValue: 1, warn: 0.5, bad: 0.8)
+                        MetricBar(title: "Compass", value: t.ekfCompassVar, maxValue: 1, warn: 0.5, bad: 0.8)
+                        MetricBar(title: "Terrain", value: t.ekfTerrainVar, maxValue: 1, warn: 0.5, bad: 0.8)
+                    }
+                    Text("Менше 0.5: добре, 0.5–0.8: увага, понад 0.8: фільтр не довіряє датчику.").font(.caption).foregroundStyle(.secondary)
                 }
-            }
-            VStack(alignment: .leading, spacing: 5) {
-                Text("Flags").font(.title2.bold()).padding(.bottom, 6)
-                ForEach(Self.flags, id: \.0) { f in
-                    let on = (t.ekfFlags & f.0) != 0
-                    Text("\(f.1) \(on ? "On" : "Off")")
-                        .font(.system(size: 14))
-                        .foregroundStyle(on ? Color.primary : (f.2 ? Color.red : Color.primary))
+                StatusSection(title: "Flags") {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 6)], spacing: 6) {
+                        ForEach(Self.flags, id: \.0) { f in FlagChip(name: f.1, on: (t.ekfFlags & f.0) != 0, required: f.2) }
+                    }
+                    Text(lk(s.connected ? "Дані EKF_STATUS_REPORT" : "Немає зв'язку з польотником")).font(.caption).foregroundStyle(.secondary)
                 }
-                Divider().padding(.vertical, 4)
-                Text(lk(s.connected ? "Дані EKF_STATUS_REPORT" : "Немає зв'язку з польотником")).font(.caption).foregroundStyle(.secondary)
-            }
-            .frame(width: 190, alignment: .leading)
+            }.padding(14)
         }
-        .padding(26)
-        .frame(minWidth: 780, minHeight: 440)
     }
 }
 
-/// Окреме вікно «Vibration».
-struct VibrationView: View {
+/// Панель «Vibration»: рівні вібрації по осях і лічильники кліппінгу.
+struct VibrationPanel: View {
     @Environment(Store.self) var s
 
     var body: some View {
         let t = s.t
-        HStack(alignment: .top, spacing: 30) {
-            VStack(spacing: 16) {
-                Text("Vibration").font(.title.bold())
-                HStack(alignment: .top, spacing: 16) {
-                    Gauge(value: t.vibeX, maxValue: 90, warn: 30, bad: 60, label: "X", warnLabel: "30", badLabel: "60")
-                    Gauge(value: t.vibeY, maxValue: 90, warn: 30, bad: 60, label: "Y", warnLabel: "30", badLabel: "60")
-                    Gauge(value: t.vibeZ, maxValue: 90, warn: 30, bad: 60, label: "Z", warnLabel: "30", badLabel: "60")
+        let worst = max(t.vibeX, t.vibeY, t.vibeZ)
+        let badge: (String, Color) = !s.connected ? ("Немає зв'язку", .secondary) : (worst >= 60 ? ("Небезпечно", .red) : (worst >= 30 ? ("Підвищена", .orange) : ("Норма", .green)))
+        ScrollView {
+            HStack(alignment: .top, spacing: 14) {
+                StatusSection(title: "Vibration, m/s²", badge: badge) {
+                    VStack(spacing: 12) {
+                        MetricBar(title: "X", value: t.vibeX, maxValue: 90, warn: 30, bad: 60)
+                        MetricBar(title: "Y", value: t.vibeY, maxValue: 90, warn: 30, bad: 60)
+                        MetricBar(title: "Z", value: t.vibeZ, maxValue: 90, warn: 30, bad: 60)
+                    }
+                    Text("Норма: до 30 м/с². Понад 60 небезпечно для польоту.").font(.caption).foregroundStyle(.secondary)
                 }
-            }
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Clipping").font(.title2.bold())
-                clip("Primary", t.vibeClip0)
-                clip("Secondary", t.vibeClip1)
-                clip("Tertiary", t.vibeClip2)
-                Divider().padding(.vertical, 4)
-                Text("Норма: до 30 м/с². Понад 60 небезпечно для польоту.").font(.caption).foregroundStyle(.secondary).frame(width: 180, alignment: .leading)
-            }
+                StatusSection(title: "Clipping") {
+                    VStack(spacing: 8) {
+                        clip("Primary", t.vibeClip0)
+                        clip("Secondary", t.vibeClip1)
+                        clip("Tertiary", t.vibeClip2)
+                    }
+                    Text("Лічильник лише зростає: важливе його швидке збільшення в польоті.").font(.caption).foregroundStyle(.secondary)
+                }
+            }.padding(14)
         }
-        .padding(26)
-        .frame(minWidth: 560, minHeight: 440)
     }
 
     func clip(_ title: String, _ v: Double) -> some View {
         HStack {
-            Text(LocalizedStringKey(title)).frame(width: 90, alignment: .leading)
-            Text(lk(String(Int(v)))).font(.system(.body, design: .monospaced))
-                .padding(.horizontal, 10).padding(.vertical, 3).frame(width: 80, alignment: .leading)
-                .background((v > 0 ? Color.red.opacity(0.25) : Color.gray.opacity(0.2)), in: RoundedRectangle(cornerRadius: 4))
+            Text(lk(title)).font(.callout)
+            Spacer()
+            Text(String(Int(v))).font(.callout.monospacedDigit().weight(.medium)).foregroundStyle(v > 0 ? Color.red : Color.secondary)
+                .padding(.horizontal, 10).padding(.vertical, 2).background((v > 0 ? Color.red : Color.gray).opacity(0.15), in: Capsule())
         }
     }
+}
+
+/// Окреме вікно «EKF Status».
+struct EKFStatusView: View {
+    var body: some View { EKFPanel().frame(minWidth: 640, minHeight: 360) }
+}
+
+/// Окреме вікно «Vibration».
+struct VibrationView: View {
+    var body: some View { VibrationPanel().frame(minWidth: 560, minHeight: 320) }
 }

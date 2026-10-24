@@ -3,7 +3,7 @@ import MapKit
 
 enum FDTab: String, CaseIterable, Identifiable {
     case dashboard = "Dashboard", actions = "Actions", messages = "Messages", params = "Params", video = "Video"
-    case preflight = "PreFlight", status = "Status", servo = "Servo/Relay", aux = "Aux Function", scripts = "Scripts", inspector = "MAVLink Inspector"
+    case preflight = "PreFlight", status = "Status", servo = "Servo/Relay", aux = "Aux Function", scripts = "Scripts", inspector = "MAVLink Inspector", ekf = "EKF", vibe = "Vibration"
     var id: String { rawValue }
 }
 
@@ -23,6 +23,7 @@ struct FlightView: View {
     @AppStorage("hud.ink") private var hudInk = ""
     @AppStorage("hud.accent") private var hudAccent = ""
     @AppStorage("fd.tabs.inspector") private var inspectorAdded = false
+    @AppStorage("fd.tabs.ekfvibe") private var ekfVibeAdded = false
     @AppStorage("fd.tabs") private var tabsCSV = FDTab.allCases.map(\.rawValue).joined(separator: ",")
     @AppStorage("hud.aspect") private var hudAspect = "auto"
     @AppStorage("hud.swap") private var hudSwap = false
@@ -104,6 +105,10 @@ struct FlightView: View {
         .environment(fs)
         .onAppear {
             fs.startLog()
+            if !ekfVibeAdded {
+                ekfVibeAdded = true
+                for t in [FDTab.ekf, FDTab.vibe] where !tabsCSV.contains(t.rawValue) { tabsCSV += "," + t.rawValue }
+            }
             if !inspectorAdded {                       // нова вкладка з'являється й у тих, хто вже налаштував порядок вкладок
                 inspectorAdded = true
                 if !tabsCSV.contains(FDTab.inspector.rawValue) { tabsCSV += "," + FDTab.inspector.rawValue }
@@ -290,6 +295,8 @@ struct FlightView: View {
         case .aux: AuxTab()
         case .scripts: ScriptsTab()
         case .inspector: MavInspectorTab()
+        case .ekf: EKFPanel()
+        case .vibe: VibrationPanel()
         }
     }
 }
@@ -311,6 +318,8 @@ struct FDTabWindow: View {
             case .aux: AuxTab()
             case .scripts: ScriptsTab()
             case .inspector: MavInspectorTab()
+            case .ekf: EKFPanel()
+            case .vibe: VibrationPanel()
             }
         }
         .frame(minWidth: 520, minHeight: 320)

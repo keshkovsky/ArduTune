@@ -3562,3 +3562,10 @@
 "Пінг: немає відповіді" = "Ping: no reply";
 "немає кадрів %.0f с" = "no frames %.0f s";
 "Пінг і FPS на відео" = "Ping and FPS on video";
+"Готовий" = "Ready";
+"Не готовий" = "Not ready";
+"Підвищена" = "Elevated";
+"Небезпечно" = "Dangerous";
+"Немає зв'язку" = "No link";
+"Менше 0.5: добре, 0.5–0.8: увага, понад 0.8: фільтр не довіряє датчику." = "Below 0.5: good, 0.5–0.8: caution, above 0.8: the filter does not trust the sensor.";
+"Лічильник лише зростає: важливе його швидке збільшення в польоті." = "The counter only grows: what matters is its fast growth in flight.";

@@ -352,14 +352,17 @@ struct HUDView: View {
             var items: [(String, Bool)] = alerts.suffix(4).map { ($0.text, $0.sev <= 3) }
             if !t.armed && alerts.contains(where: { $0.text.localizedCaseInsensitiveContains("prearm") }) { items.append(("Not Ready to Arm", true)) }
             if !ekfOK { items.append(("EKF не готовий", true)) }
-            let top0 = c.y + 26 * u
-            let room = max(1, Int((roseTop - 4 - top0) / 26))
-            for (i, al) in items.suffix(room).enumerated() {
+            // Стопка притиснута до низу вільної області (над компасною розою) і росте вгору, щоб не лізти на приціл і драбину тангажа
+            let step: CGFloat = 26 * min(u, 1) + 2 + 6
+            let room = max(1, Int((roseTop - 8 - (c.y + 26 * u)) / step))
+            let shown = Array(items.suffix(room))
+            let yLast = roseTop - 8 - (26 * min(u, 1) + 2) / 2
+            for (i, al) in shown.enumerated() {
                 let col: Color = al.1 ? Color(red: 1, green: 0.27, blue: 0.23) : Color.orange
                 let r = ctx.resolve(Text(LocalizedStringKey(al.0)).font(.system(size: 12.5 * min(u, 1), weight: .semibold)).foregroundColor(.white))
                 let sz = r.measure(in: CGSize(width: w - 80, height: 30))
                 let bw = sz.width + 44, bh: CGFloat = 26 * min(u, 1) + 2
-                let y = top0 + CGFloat(i) * (bh + 6)
+                let y = yLast - CGFloat(shown.count - 1 - i) * step
                 let box = CGRect(x: c.x - bw / 2, y: y - bh / 2, width: bw, height: bh)
                 let cap = Path(roundedRect: box, cornerRadius: bh / 2, style: .continuous)
                 ctx.fill(cap, with: .color(.black.opacity(0.5)))

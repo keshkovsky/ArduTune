@@ -3556,3 +3556,4 @@
 "Приймаю канали з пульта (кадрів: %lld)" = "Receiving channels from the radio (frames: %lld)";
 "— немає портів —" = "— no ports —";
 "Не вибирайте порт польотника." = "Do not select the flight controller port.";
+"Відео зникло, перепідключення (спроба %lld)…" = "Video lost, reconnecting (attempt %lld)…";

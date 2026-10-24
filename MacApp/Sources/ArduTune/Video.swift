@@ -42,6 +42,14 @@ final class VideoStore: NSObject {
     @ObservationIgnored private var frames = 0
     @ObservationIgnored private var fpsStamp = Date()
     @ObservationIgnored private var pending = 0
+    // Автоперепідключення GStreamer: якщо кадрів немає або процес завершився, а користувач не зупиняв відео.
+    @ObservationIgnored private var wantGst = false
+    @ObservationIgnored private var launchedAt = Date()
+    @ObservationIgnored private var lastFrameAt = Date()
+    @ObservationIgnored private var attempts = 0
+    @ObservationIgnored private var gotFrame = false
+    @ObservationIgnored private var nextRetry = Date.distantPast
+    @ObservationIgnored private var watchdog: Timer?
 
     var running: Bool { active != .none }
 
@@ -95,7 +103,31 @@ final class VideoStore: NSObject {
     func startGStreamer(_ pipe: String? = nil) {
         if let p = pipe { pipeline = p }
         guard Self.gstAvailable else { status = String(localized: "GStreamer не знайдено (потрібен GStreamer.framework)"); return }
-        stopAll()
+        wantGst = true; attempts = 0
+        launchGStreamer()
+        if watchdog == nil {
+            watchdog = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in self?.checkStream() }
+        }
+    }
+
+    /// Якщо потік завис або процес завершився без дії користувача: перезапуск із наростаючою паузою.
+    private func checkStream() {
+        guard wantGst, Self.gstAvailable else { return }
+        let now = Date()
+        let stale = active == .gstreamer && now.timeIntervalSince(max(lastFrameAt, launchedAt)) > (gotFrame ? 6 : 20)
+        let dead = active == .none
+        guard stale || dead, now >= nextRetry else { return }
+        attempts += 1
+        nextRetry = now.addingTimeInterval(min(30, Double(attempts) * 3))
+        launchGStreamer()
+        status = String(localized: "Відео зникло, перепідключення (спроба \(attempts))…")
+    }
+
+    private func launchGStreamer() {
+        if let p = process, p.isRunning { p.terminate() }
+        process = nil
+        active = .none; frame = nil; fps = 0
+        launchedAt = Date(); lastFrameAt = Date(); gotFrame = false
         // Прибираємо appsink з кінця (формат Mission Planner) і виводимо JPEG-кадри в stdout
         var src = pipeline.trimmingCharacters(in: .whitespacesAndNewlines)
         if let r = src.range(of: #"!\s*appsink[^!]*$"#, options: .regularExpression) { src.removeSubrange(r) }
@@ -141,7 +173,7 @@ final class VideoStore: NSObject {
                 DispatchQueue.main.async {
                     self.pending -= 1
                     if let img = NSImage(data: jpeg) { self.frame = img }
-                    self.frames += 1
+                    self.frames += 1; self.lastFrameAt = Date(); self.gotFrame = true; self.attempts = 0
                     let dt = Date().timeIntervalSince(self.fpsStamp)
                     if dt >= 1 { self.fps = Double(self.frames) / dt; self.frames = 0; self.fpsStamp = Date() }
                 }
@@ -150,6 +182,7 @@ final class VideoStore: NSObject {
     }
 
     func stopAll() {
+        wantGst = false
         if let p = process, p.isRunning { p.terminate() }
         process = nil
         if session.isRunning { DispatchQueue.global().async { self.session.stopRunning() } }

@@ -25,6 +25,8 @@ enum MapLayer: String, CaseIterable, Identifiable {
         }
     }
     var short: String { loc(title).replacingOccurrences(of: " · ", with: " ") }
+    /// Підпис на кнопці панелі: довгі назви скорочуються до провайдера (повна назва лишається в меню).
+    var barTitle: String { self == .openTopo ? "OpenTopoMap" : short }
     var isTiles: Bool { self != .appleSat && self != .appleStd }
     var maxZoom: Int { switch self { case .openTopo: 17; case .esriTopo: 19; case .osm: 19; case .bingSat, .bingHybrid, .bingRoad: 19; default: 20 } }
     static let groups: [(String, [MapLayer])] = [

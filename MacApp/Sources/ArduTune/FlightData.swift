@@ -348,9 +348,9 @@ struct MapToolbar: View {
     @Bindable var opt: MapOptions
     var body: some View {
         HStack(spacing: 10) {
-            Toggle("Auto Pan", isOn: $opt.autoPan).toggleStyle(.checkbox)
-            Toggle("Fly to here (double-click)", isOn: $opt.flyHere).toggleStyle(.checkbox)
-            Toggle("Трек", isOn: $opt.showTrack).toggleStyle(.checkbox)
+            Toggle("Auto Pan", isOn: $opt.autoPan).toggleStyle(.checkbox).lineLimit(1).fixedSize()
+            Toggle("Fly to here (double-click)", isOn: $opt.flyHere).toggleStyle(.checkbox).lineLimit(1).fixedSize()
+            Toggle("Трек", isOn: $opt.showTrack).toggleStyle(.checkbox).lineLimit(1).fixedSize()
             Menu {
                 ForEach(MapLayer.groups, id: \.0) { g in
                     Section(lk(g.0)) { ForEach(g.1) { l in Button { opt.layer = l } label: { if opt.layer == l { Label(LocalizedStringKey(l.title), systemImage: "checkmark") } else { Text(LocalizedStringKey(l.title)) } } } }
@@ -359,7 +359,7 @@ struct MapToolbar: View {
                 Toggle("Лінія фронту (DeepState)", isOn: $opt.front)
                 Toggle("Напрямки борту: компас · GPS · гіро", isOn: $opt.rays)
                 Toggle("Маршрут місії", isOn: $opt.showRoute)
-            } label: { Label(LocalizedStringKey(opt.layer.short), systemImage: "square.3.layers.3d") }
+            } label: { Label(LocalizedStringKey(opt.layer.barTitle), systemImage: "square.3.layers.3d").lineLimit(1) }
                 .menuStyle(.borderlessButton).fixedSize()
         }
         .font(.caption)

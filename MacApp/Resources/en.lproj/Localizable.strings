@@ -3557,3 +3557,8 @@
 "— немає портів —" = "— no ports —";
 "Не вибирайте порт польотника." = "Do not select the flight controller port.";
 "Відео зникло, перепідключення (спроба %lld)…" = "Video lost, reconnecting (attempt %lld)…";
+"Пінг %.0f мс" = "Ping %.0f ms";
+"Пінг: немає адреси" = "Ping: no address";
+"Пінг: немає відповіді" = "Ping: no reply";
+"немає кадрів %.0f с" = "no frames %.0f s";
+"Пінг і FPS на відео" = "Ping and FPS on video";

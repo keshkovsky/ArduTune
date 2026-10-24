@@ -32,6 +32,10 @@ final class VideoStore: NSObject {
     var fps = 0.0
     var showInHUD = false
     var hudOverlay = true
+    var showStats = UserDefaults.standard.bool(forKey: "video.stats") { didSet { UserDefaults.standard.set(showStats, forKey: "video.stats"); updateStatsTimer() } }
+    var pingMs: Double?                 // nil: немає відповіді або адреса потоку невідома
+    var pingHost: String?
+    var frameAge = 0.0                  // секунд від останнього кадру
     var pipeline: String = UserDefaults.standard.string(forKey: "video.pipeline") ?? VideoStore.presets[0].1 {
         didSet { UserDefaults.standard.set(pipeline, forKey: "video.pipeline") }
     }
@@ -50,6 +54,8 @@ final class VideoStore: NSObject {
     @ObservationIgnored private var gotFrame = false
     @ObservationIgnored private var nextRetry = Date.distantPast
     @ObservationIgnored private var watchdog: Timer?
+    @ObservationIgnored private var statsTimer: Timer?
+    @ObservationIgnored private var pinging = false
 
     var running: Bool { active != .none }
 
@@ -105,6 +111,7 @@ final class VideoStore: NSObject {
         guard Self.gstAvailable else { status = String(localized: "GStreamer не знайдено (потрібен GStreamer.framework)"); return }
         wantGst = true; attempts = 0
         launchGStreamer()
+        updateStatsTimer()
         if watchdog == nil {
             watchdog = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in self?.checkStream() }
         }
@@ -121,6 +128,43 @@ final class VideoStore: NSObject {
         nextRetry = now.addingTimeInterval(min(30, Double(attempts) * 3))
         launchGStreamer()
         status = String(localized: "Відео зникло, перепідключення (спроба \(attempts))…")
+    }
+
+    // MARK: Пінг і затримка (віджет)
+    /// Адреса хоста з pipeline: rtsp://[user:pass@]host[:port]/… або host=… (udpsink/srtsrc тощо).
+    var streamHost: String? {
+        let p = pipeline
+        if let r = p.range(of: #"rtsps?://(?:[^@/\s]*@)?([^:/\s]+)"#, options: .regularExpression) {
+            let m = String(p[r]); return m.components(separatedBy: "@").last.map { String($0.split(whereSeparator: { $0 == ":" || $0 == "/" }).first(where: { !$0.hasPrefix("rtsp") }) ?? "") } ?? nil
+        }
+        if let r = p.range(of: #"host=([^\s]+)"#, options: .regularExpression) { return String(p[r].dropFirst(5)) }
+        return nil
+    }
+
+    func updateStatsTimer() {
+        statsTimer?.invalidate(); statsTimer = nil
+        guard showStats else { return }
+        statsTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in self?.statsTick() }
+    }
+
+    private func statsTick() {
+        frameAge = active == .gstreamer ? Date().timeIntervalSince(lastFrameAt) : 0
+        guard running, let host = streamHost else { pingMs = nil; pingHost = nil; return }
+        pingHost = host
+        guard !pinging else { return }
+        pinging = true
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let p = Process(); p.executableURL = URL(fileURLWithPath: "/sbin/ping")
+            p.arguments = ["-c", "1", "-t", "2", host]
+            let out = Pipe(); p.standardOutput = out; p.standardError = Pipe()
+            var ms: Double?
+            if (try? p.run()) != nil {
+                let d = out.fileHandleForReading.readDataToEndOfFile(); p.waitUntilExit()
+                let s = String(decoding: d, as: UTF8.self)
+                if let r = s.range(of: #"time=([0-9.]+)"#, options: .regularExpression) { ms = Double(s[r].dropFirst(5)) }
+            }
+            DispatchQueue.main.async { self?.pingMs = ms; self?.pinging = false }
+        }
     }
 
     private func launchGStreamer() {
@@ -221,7 +265,26 @@ struct VideoSurface: View {
             case .none: ContentUnavailableView("Відео не запущено", systemImage: "video.slash")
             }
             if overlay && video.hudOverlay && video.running { VideoOverlay(t: t) }
+            if video.showStats && video.active == .gstreamer { VideoStatsBadge(video: video).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing).padding(8) }
         }
+    }
+}
+
+/// Віджет якості відео: пінг до джерела, кадри/с і час без кадрів. Це не повна затримка «скло-скло», а мережева затримка й стан потоку.
+struct VideoStatsBadge: View {
+    let video: VideoStore
+    var body: some View {
+        let ping = video.pingMs
+        let color: Color = ping == nil ? .gray : (ping! < 100 ? .green : (ping! < 250 ? .yellow : .red))
+        HStack(spacing: 8) {
+            Circle().fill(color).frame(width: 8, height: 8)
+            Text(ping.map { String(format: loc("Пінг %.0f мс"), $0) } ?? (video.pingHost == nil ? loc("Пінг: немає адреси") : loc("Пінг: немає відповіді")))
+            if video.fps > 0 { Text(String(format: "%.0f fps", video.fps)) }
+            if video.frameAge > 2 { Text(String(format: loc("немає кадрів %.0f с"), video.frameAge)).foregroundStyle(.orange) }
+        }
+        .font(.system(size: 12, weight: .semibold, design: .monospaced)).foregroundStyle(.white)
+        .padding(.horizontal, 10).padding(.vertical, 5)
+        .background(.black.opacity(0.55), in: Capsule())
     }
 }
 
@@ -327,6 +390,7 @@ struct VideoTab: View {
                     HStack {
                         Button { openWindow(id: "video") } label: { Label("Відкрити у вікні", systemImage: "rectangle.on.rectangle") }
                         Toggle("Показувати на HUD", isOn: Binding(get: { v.showInHUD }, set: { v.showInHUD = $0 })).toggleStyle(.checkbox)
+                        Toggle("Пінг і FPS на відео", isOn: Binding(get: { v.showStats }, set: { v.showStats = $0 })).toggleStyle(.checkbox)
                     }
                     if !v.status.isEmpty { Text(LocalizedStringKey(v.status)).font(.caption).foregroundStyle(.secondary) }
                     if v.fps > 0 { Text(String(format: loc("%.0f кадрів/с"), v.fps)).font(.caption).foregroundStyle(.secondary) }

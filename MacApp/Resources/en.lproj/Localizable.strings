@@ -3562,3 +3562,7 @@
 "Пінг: немає відповіді" = "Ping: no reply";
 "немає кадрів %.0f с" = "no frames %.0f s";
 "Пінг і FPS на відео" = "Ping and FPS on video";
+"Низька затримка" = "Low latency";
+"RTSP через UDP" = "RTSP over UDP";
+"latency=0 у rtspsrc і sync=false на виводі: менша затримка, але менш плавне відео при втратах пакетів" = "latency=0 in rtspsrc and sync=false on output: lower latency, but less smooth video when packets are lost";
+"Примусово protocols=udp. Якщо відео не стартує, вимкніть: через тунель UDP може не проходити" = "Forces protocols=udp. If the video does not start, turn it off: UDP may not pass through the tunnel";

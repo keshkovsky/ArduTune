@@ -2120,7 +2120,7 @@
 "Тип OSD і порт підключення застосовуються після перезавантаження автопілота." = "The OSD type and connection port are applied after the autopilot reboots.";
 "Тип OSD і формат відео" = "OSD type and video format";
 "Увімкнено, але на відео не з'являться (лише MSP OSD): " = "Enabled, but will not appear on the video (MSP OSD only):";
-"Форма й розмір елементів взято з вихідного коду ArduPilot; символи шрифту показано близькими знаками. Горизонт і компас задаються центром, решта лівим верхнім кутом." = "The shape and size of elements are taken from the ArduPilot source code; font symbols are shown with similar characters. The horizon and compass are set by their center, the rest by the top-left corner.";
+"Форма, розмір і символи елементів відповідають вихідному коду ArduPilot і шрифту OSD_FONT, одиниці виміру беруться з OSD_UNITS. Горизонт і компас задаються центром, решта лівим верхнім кутом." = "The shape, size and symbols of the elements follow the ArduPilot source code and the OSD_FONT font; units come from OSD_UNITS. The horizon and compass are set by their center, the rest by the top-left corner.";
 "Цей елемент малюють лише MSP-окуляри; на аналоговому OSD і в DisplayPort його не буде." = "This element is drawn only by MSP goggles; it will not be on the analog OSD and in DisplayPort.";
 "Цифровий HD (50×18)" = "Digital HD (50×18)";
 "Цифровий HD (60×22)" = "Digital HD (60×22)";

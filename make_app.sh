@@ -12,7 +12,7 @@ cp MacApp/.build/release/ArduTune "$APP/Contents/MacOS/"
 cp -R build/engine/ "$APP/Contents/Resources/Engine/"
 cp LICENSE "$APP/Contents/Resources/COPYING.txt"
 cp Assets/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
-cp -R MacApp/Resources/en.lproj MacApp/Resources/uk.lproj "$APP/Contents/Resources/"
+cp -R MacApp/Resources/en.lproj MacApp/Resources/uk.lproj MacApp/Resources/osdfonts "$APP/Contents/Resources/"
 cat > "$APP/Contents/Info.plist" <<PL
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

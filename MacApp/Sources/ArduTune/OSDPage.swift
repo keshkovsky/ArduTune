@@ -431,96 +431,6 @@ struct OSDView: View {
 // MARK: - Форма елементів за вихідним кодом ArduPilot (AP_OSD_Screen.cpp, Copter-4.6.3)
 
 /// Скільки клітинок займає елемент і де відносно параметрів X/Y. Символи шрифту замінено близькими знаками.
-struct OSDShape {
-    var rows: [String]
-    var dx = 0, dy = 0              // зсув лівого верхнього кута габариту відносно (X, Y); центровані елементи мають від'ємні значення
-    var mspOnly = false             // малює лише MSP OSD (окуляри), внутрішній рендерер ArduPilot його ігнорує
-    var w: Int { rows.map(\.count).max() ?? 1 }
-    var h: Int { rows.count }
-}
-
-enum OSDShapes {
-    /// Елементи, які внутрішній рендерер ArduPilot (MAX7456, DisplayPort) не малює (опис параметра: «MSP OSD only»).
-    static let mspOnly: Set<String> = ["CRSSHAIR", "HOMEDIST", "HOMEDIR", "POWER", "CELLVOLT", "BATTBAR", "ARMING"]
-
-    static func shape(_ k: String) -> OSDShape {
-        if mspOnly.contains(k) {
-            var s: OSDShape
-            switch k {
-            case "CRSSHAIR": s = OSDShape(rows: ["╶┼╴"], dx: -1)
-            case "HOMEDIST": s = OSDShape(rows: [" 350m"])
-            case "HOMEDIR": s = OSDShape(rows: ["↗"])
-            case "POWER": s = OSDShape(rows: ["186W"])
-            case "CELLVOLT": s = OSDShape(rows: ["3.76V"])
-            case "BATTBAR": s = OSDShape(rows: ["▮▮▮▮▯"])
-            default: s = OSDShape(rows: ["ARMED"])
-            }
-            s.mspOnly = true; return s
-        }
-        switch k {
-        case "ALTITUDE": return OSDShape(rows: [" 120m"])                               // "%4d%c"
-        case "BAT_VOLT", "BAT2_VLT": return OSDShape(rows: ["▮15.1V"])                  // символ + "%2.1f" + V
-        case "AVGCELLV", "ACRVOLT": return OSDShape(rows: ["▮3.78V"])
-        case "RESTVOLT": return OSDShape(rows: ["▮15.8V"])
-        case "RSSI", "LINK_Q": return OSDShape(rows: ["▤92"])                           // "%c%2d"
-        case "CURRENT", "CURRENT2": return OSDShape(rows: ["12.3A"])                    // "%2.1f%c" (≥10 А) або "%2.2f%c"
-        case "BATUSED", "BAT2USED": return OSDShape(rows: [" 850m"])                    // "%4d%c"
-        case "SATS": return OSDShape(rows: ["◖◗14"])                                    // 2 символи + "%2u"
-        case "FLTMODE": return OSDShape(rows: ["STAB▪"])                                // 4 літери режиму + ознака ARM
-        case "MESSAGE": return OSDShape(rows: ["ARMED: READY TO FLY"] .map { $0.padding(toLength: 26, withPad: " ", startingAt: 0) })     // видима ширина 26
-        case "GSPEED": return OSDShape(rows: ["▸↗ 17m"])                                // символ + стрілка + "%3d" + одиниця
-        case "WIND": return OSDShape(rows: ["≋↗  6m"])
-        case "ASPEED", "ASPD1", "ASPD2": return OSDShape(rows: ["▹  18m"])             // "%c%4d%c"
-        case "VSPEED": return OSDShape(rows: ["↑1.2m"])
-        case "THROTTLE": return OSDShape(rows: [" 55%"])                                // "%3d%c"
-        case "HEADING": return OSDShape(rows: ["120°"])
-        case "HOME": return OSDShape(rows: ["⌂↗ 350m"])                                 // символ, стрілка, відстань з x+2
-        case "COMPASS": return OSDShape(rows: ["─┼─E─┼─S─"], dx: -4)                    // 9 символів, X = центр
-        case "HORIZON":                                                                // 9×9 навколо центра (X, Y); лінія рухається по тангажу ±4 рядки
-            var rows = [String](repeating: "         ", count: 9); rows[4] = "───╶┼╴───"
-            return OSDShape(rows: rows, dx: -4, dy: -4)
-        case "GPSLAT": return OSDShape(rows: ["⌖  50.4501000"])                          // "%c%4ld.%07ld" = 13
-        case "GPSLONG": return OSDShape(rows: ["⌖  30.5234000"])
-        case "ROLL": return OSDShape(rows: ["⟲ 12°"])
-        case "PITCH": return OSDShape(rows: ["⇡  4°"])
-        case "TEMP", "ATEMP", "BTEMP", "ESCTEMP": return OSDShape(rows: [" 34°"])
-        case "HDOP": return OSDShape(rows: ["◑◐0.90"])
-        case "WAYPOINT": return OSDShape(rows: ["⚑ 3↗"])
-        case "XTRACK": return OSDShape(rows: ["↔ 4.0m"])
-        case "DIST": return OSDShape(rows: ["→4.20k"])
-        case "STATS": return OSDShape(rows: ["  MAX ", "▸  25m", " 18.4A", "  120m", "⌂ 350m", "→4.20k"])
-        case "FLTIME": return OSDShape(rows: ["◷ 12:40"])
-        case "CLK": return OSDShape(rows: ["◷14:25"])
-        case "EFF": return OSDShape(rows: ["⌁  7m"])
-        case "CLIMBEFF": return OSDShape(rows: ["↑⌁2.1m"])
-        case "ESCRPM": return OSDShape(rows: [" 5.4kR"])
-        case "ESCAMPS": return OSDShape(rows: ["12.3A"])
-        case "RPM": return OSDShape(rows: ["5400R"])
-        case "TER_HGT": return OSDShape(rows: ["  85m▽"])
-        case "RNGF": return OSDShape(rows: ["⇣ 3.4m"])
-        case "FENCE": return OSDShape(rows: ["▦"])
-        case "VTX_PWR": return OSDShape(rows: [" 200m"])
-        case "CALLSIGN": return OSDShape(rows: ["UAV-01"])
-        case "PLUSCODE": return OSDShape(rows: ["8GWR+PF4+QQ"])
-        case "RC_PWR": return OSDShape(rows: ["100mW"])
-        case "RSSIDBM": return OSDShape(rows: ["▤ -90DBM"])
-        case "RC_SNR": return OSDShape(rows: ["SNR 12DB"])
-        case "RC_ANT": return OSDShape(rows: ["ANT1"])
-        case "RC_LQ": return OSDShape(rows: ["LQ 0:100"])
-        case "SIDEBARS":                                                                // ліва шкала швидкості й права висоти, 7 рядків
-            var rows: [String] = []
-            for i in 0..<7 {
-                var r = Array(repeating: " ", count: 22)
-                if i == 3 { for (j, c) in " 18m▸".enumerated() { r[j] = String(c) }; for (j, c) in "◂120m".enumerated() { r[16 + j] = String(c) } }
-                else { r[4] = "┤"; r[16] = "├" }
-                rows.append(r.joined())
-            }
-            return OSDShape(rows: rows)
-        default: return OSDShape(rows: [OSDInfo.sample(k)])
-        }
-    }
-}
-
 // MARK: - Макет екрана з перетягуванням
 
 /// Макет відтворює кадр відео: аналог 4:3, цифра 16:9 (DJI 30×16 займає центральну область 4:3), символьні клітинки шириною
@@ -616,13 +526,13 @@ struct OSDGrid: View {
             if !outside.isEmpty {
                 Label(lk(String(localized: "Виходять за межі екрана \(format.cols)×\(format.rows): ") + outside.map { OSDInfo.title($0) }.joined(separator: ", ")), systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.red).frame(width: g.frameW, alignment: .leading)
             }
-            Text("Форма й розмір елементів взято з вихідного коду ArduPilot; символи шрифту показано близькими знаками. Горизонт і компас задаються центром, решта лівим верхнім кутом.").font(.caption2).foregroundStyle(.tertiary).frame(width: g.frameW, alignment: .leading)
+            Text("Форма, розмір і символи елементів відповідають вихідному коду ArduPilot і шрифту OSD_FONT, одиниці виміру беруться з OSD_UNITS. Горизонт і компас задаються центром, решта лівим верхнім кутом.").font(.caption2).foregroundStyle(.tertiary).frame(width: g.frameW, alignment: .leading)
         }
     }
 
     /// Габарит елемента в клітинках: (лівий верхній кут X, Y, ширина, висота).
     func box(_ k: String) -> (x: Int, y: Int, w: Int, h: Int) {
-        let p = pos(k), s = OSDShapes.shape(k)
+        let p = pos(k), s = realShape(k)
         return (Int(p.x) + s.dx, Int(p.y) + s.dy, s.w, s.h)
     }
     func isOutside(_ k: String) -> Bool {
@@ -635,7 +545,11 @@ struct OSDGrid: View {
         keys.filter { k in (ps.val("OSD\(screen)_\(k)_EN") ?? 0) > 0 && (msp || !OSDShapes.mspOnly.contains(k)) }
     }
     /// Те, що показується на макеті: приклад значення або назва елемента.
-    func displayShape(_ k: String) -> OSDShape { names ? OSDShape(rows: [k], dx: 0, dy: 0) : OSDShapes.shape(k) }
+    func realShape(_ k: String) -> OSDShape {
+        OSDShapes.units = Int(ps.val("OSD_UNITS") ?? 0); OSDShapes.sidebarVExt = Int(ps.val("OSD_SB_V_EXT") ?? 0); OSDShapes.sidebarHOffset = Int(ps.val("OSD_SB_H_OFS") ?? 0)
+        return OSDShapes.shape(k)
+    }
+    func displayShape(_ k: String) -> OSDShape { names ? OSDShape(rows: [k], dx: 0, dy: 0) : realShape(k) }
 
     /// Прямокутник елемента у координатах кадру (з урахуванням перетягування).
     func rect(_ k: String, _ g: Geo) -> CGRect {
@@ -646,8 +560,7 @@ struct OSDGrid: View {
     }
 
     func drawItems(_ ctx: inout GraphicsContext, _ g: Geo) {
-        let fs = min(g.cellW / 0.62, g.cellH * 0.8)
-        let font = Font.system(size: fs, weight: .semibold, design: .monospaced)
+        let glyphs = OSDFontLib.glyphs(Int(ps.val("OSD_FONT") ?? 0))
         for k in visibleKeys() {
             let sh = displayShape(k), r = rect(k, g)
             let isSel = selected == k, out = isOutside(k)
@@ -657,14 +570,12 @@ struct OSDGrid: View {
                 ctx.stroke(Path(r), with: .color(out ? .red : (isSel ? .accentColor : .white.opacity(0.25))),
                            style: StrokeStyle(lineWidth: out || isSel ? 1.2 : 0.6, dash: isSel && !out ? [] : [3, 2]))
             }
-            for (i, row) in sh.rows.enumerated() where !row.trimmingCharacters(in: .whitespaces).isEmpty {
-                let o = CGPoint(x: r.minX, y: r.minY + CGFloat(i) * g.cellH + (g.cellH - fs * 1.2) / 2)
-                let t = Text(LocalizedStringKey(row)).font(font)
-                // контур: чотири чорні копії з відступом і біла зверху
-                for d in [CGPoint(x: 0.9, y: 0.9), CGPoint(x: -0.9, y: -0.9), CGPoint(x: 0.9, y: -0.9), CGPoint(x: -0.9, y: 0.9)] {
-                    ctx.draw(t.foregroundColor(.black), at: CGPoint(x: o.x + d.x, y: o.y + d.y), anchor: .topLeading)
+            for (ri, row) in sh.cells.enumerated() {
+                for (ci, c) in row.enumerated() {
+                    guard let c, let img = glyphs[Int(c)] else { continue }
+                    let cr = CGRect(x: r.minX + CGFloat(ci) * g.cellW, y: r.minY + CGFloat(ri) * g.cellH, width: g.cellW, height: g.cellH)
+                    ctx.draw(ctx.resolve(Image(decorative: img, scale: 1).interpolation(.none)), in: cr)
                 }
-                ctx.draw(t.foregroundColor(.white), at: o, anchor: .topLeading)
             }
         }
     }

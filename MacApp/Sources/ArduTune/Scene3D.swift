@@ -279,6 +279,7 @@ enum SceneBuilder {
             let under = agl < 5
             let mk = billboardMarker(markerImage(number: w.label, icon: under ? "exclamationmark.triangle.fill" : w.icon, color: under ? .systemRed : w.color,
                                                  agl: t.ok ? String(format: loc("%.0f м"), agl) : "")); mk.position = p
+            mk.geometry?.name = "wp"
             content.addChildNode(mk)
         }
         if let h = route.home {
@@ -372,19 +373,52 @@ final class OrbitSCNView: SCNView {
     }
 
     private var grab: (x: Double, z: Double)?
+    private var downAt = NSPoint.zero
+    private var moved = false
+    /// Точка маршруту, на якій зафіксовано камеру (ЛКМ по точці); клік у будь-яке інше місце знімає фіксацію.
+    var focus: SCNVector3?
+    private var focusTimer: Timer?
+
+    /// Плавне переміщення цілі камери в точку p.
+    private func glide(to p: SCNVector3) {
+        focusTimer?.invalidate()
+        let from = target, t0 = Date(), dur = 0.45
+        focusTimer = Timer.scheduledTimer(withTimeInterval: 1 / 60, repeats: true) { [weak self] tm in
+            guard let self else { tm.invalidate(); return }
+            let k = min(1, Date().timeIntervalSince(t0) / dur), e = CGFloat(1 - pow(1 - k, 3))
+            self.target = SCNVector3(from.x + (p.x - from.x) * e, from.y + (p.y - from.y) * e, from.z + (p.z - from.z) * e)
+            self.apply()
+            if k >= 1 { tm.invalidate() }
+        }
+    }
+
+    func clearFocus() { focus = nil; focusTimer?.invalidate(); focusTimer = nil }
+
+    private func waypointNode(at event: NSEvent) -> SCNNode? {
+        let loc = convert(event.locationInWindow, from: nil)
+        let hits = hitTest(loc, options: [.searchMode: SCNHitTestSearchMode.all.rawValue, .ignoreHiddenNodes: true])
+        return hits.first { $0.node.geometry?.name == "wp" }?.node
+    }
     private var scrollPivot: (x: Double, y: Double, z: Double)?
 
     /// ЛКМ: зміщення; ПКМ: обертання. Двопальцева прокрутка без натискання теж обертає (див. scrollWheel).
     override func rightMouseDown(with e: NSEvent) { pivot = groundPoint(e).map { ($0.x, Double(target.y), $0.z) } }
     override func rightMouseUp(with e: NSEvent) { pivot = nil }
     override func rightMouseDragged(with e: NSEvent) {
-        rotate(da: Double(e.deltaX) * 0.35, dEl: Double(e.deltaY) * 0.3, around: pivot)
+        rotate(da: Double(e.deltaX) * 0.35, dEl: Double(e.deltaY) * 0.3, around: focus == nil ? pivot : nil)
     }
-    override func mouseDown(with e: NSEvent) { grab = groundPoint(e) }
-    override func mouseUp(with e: NSEvent) { grab = nil }
+    override func mouseDown(with e: NSEvent) { grab = groundPoint(e); downAt = e.locationInWindow; moved = false }
+    override func mouseUp(with e: NSEvent) {
+        grab = nil
+        guard !moved, !locked else { return }
+        if let n = waypointNode(at: e) { focus = n.worldPosition; glide(to: n.worldPosition) }
+        else if focus != nil { clearFocus() }
+    }
     /// Перетягування: точка землі, за яку «схопили» карту, лишається під курсором (швидкість не залежить від масштабу).
     override func mouseDragged(with e: NSEvent) {
         guard !locked else { return }
+        if hypot(e.locationInWindow.x - downAt.x, e.locationInWindow.y - downAt.y) > 3 { moved = true }
+        if focus != nil { rotate(da: Double(e.deltaX) * 0.35, dEl: Double(e.deltaY) * 0.3, around: nil); return }
         guard let g = grab, let p = groundPoint(e) else { pan(dx: e.deltaX, dy: e.deltaY); return }
         var dx = g.x - p.x, dz = g.z - p.z
         let len = (dx * dx + dz * dz).squareRoot(), lim = distance * 3
@@ -392,7 +426,7 @@ final class OrbitSCNView: SCNView {
         target.x += CGFloat(dx); target.z += CGFloat(dz)
         apply()
     }
-    override func otherMouseDragged(with e: NSEvent) { guard !locked else { return }; pan(dx: e.deltaX, dy: e.deltaY) }
+    override func otherMouseDragged(with e: NSEvent) { guard !locked, focus == nil else { return }; pan(dx: e.deltaX, dy: e.deltaY) }
     func pan(dx: CGFloat, dy: CGFloat) {
         let a = azimuth * .pi / 180
         let k = distance * 0.0012
@@ -406,7 +440,7 @@ final class OrbitSCNView: SCNView {
         let old = distance
         let nd = min(max(old * k, minDistance), maxDistance)
         let kk = nd / old
-        if !locked, kk != 1 {
+        if !locked, kk != 1, focus == nil {
             let loc = convert(event.locationInWindow, from: nil)
             let n = unprojectPoint(SCNVector3(loc.x, loc.y, 0)), f = unprojectPoint(SCNVector3(loc.x, loc.y, 1))
             let dy = f.y - n.y
@@ -428,8 +462,8 @@ final class OrbitSCNView: SCNView {
             zoom(factor: pow(0.88, Double(e.scrollingDeltaY == 0 ? e.deltaY : e.scrollingDeltaY)), at: e); return
         }
         // Точка обертання фіксується на початку жесту й не «пливе» за курсором.
-        if e.phase.contains(.began) || scrollPivot == nil, let g = groundPoint(e) { scrollPivot = (g.x, Double(target.y), g.z) }
-        rotate(da: Double(e.scrollingDeltaX) * 0.3, dEl: Double(e.scrollingDeltaY) * 0.25, around: scrollPivot)
+        if focus == nil, e.phase.contains(.began) || scrollPivot == nil, let g = groundPoint(e) { scrollPivot = (g.x, Double(target.y), g.z) }
+        rotate(da: Double(e.scrollingDeltaX) * 0.3, dEl: Double(e.scrollingDeltaY) * 0.25, around: focus == nil ? scrollPivot : nil)
         if e.momentumPhase.contains(.ended) || e.phase.contains(.cancelled) || (e.phase.contains(.ended) && e.momentumPhase.isEmpty) { scrollPivot = nil }
     }
     override func magnify(with e: NSEvent) { zoom(factor: 1 / (1 + Double(e.magnification) * 3), at: e) }
@@ -527,6 +561,7 @@ struct Scene3DView: NSViewRepresentable {
         if c.lastToken != request.token {
             c.lastToken = request.token
             v.azimuth = request.azimuth; v.elevation = request.elevation
+            if request.resetDistance { v.clearFocus() }
             if request.resetDistance {
                 let mid = CGFloat(((t.elev.max() ?? 0) - t.base) * vexag) * 0.3
                 v.target = SCNVector3(0, mid, 0)
@@ -560,7 +595,7 @@ struct Scene3DView: NSViewRepresentable {
             c.tether?.scale = SCNVector3(1, max(abs(y - gy), 0.1), 1)
             c.tether?.position = SCNVector3(x, (y + gy) / 2, z)
             SCNTransaction.commit()
-            if follow && !locked { v.target = SCNVector3(x, y, z); v.apply() }
+            if follow && !locked && v.focus == nil { v.target = SCNVector3(x, y, z); v.apply() }
         } else if let n = c.veh { n.removeFromParentNode(); c.veh = nil; c.vehPlane = nil; c.tether?.removeFromParentNode(); c.tether = nil }
     }
 }

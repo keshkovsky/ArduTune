@@ -352,24 +352,34 @@ struct HUDView: View {
             var items: [(String, Bool)] = alerts.suffix(4).map { ($0.text, $0.sev <= 3) }
             if !t.armed && alerts.contains(where: { $0.text.localizedCaseInsensitiveContains("prearm") }) { items.append(("Not Ready to Arm", true)) }
             if !ekfOK { items.append(("EKF не готовий", true)) }
-            // Стопка притиснута до низу вільної області (над компасною розою) і росте вгору, щоб не лізти на приціл і драбину тангажа
-            let step: CGFloat = 26 * min(u, 1) + 2 + 6
-            let room = max(1, Int((roseTop - 8 - (c.y + 26 * u)) / step))
-            let shown = Array(items.suffix(room))
-            let yLast = roseTop - 8 - (26 * min(u, 1) + 2) / 2
-            for (i, al) in shown.enumerated() {
-                let col: Color = al.1 ? Color(red: 1, green: 0.27, blue: 0.23) : Color.orange
+            // Попередження: один ряд у самому низу HUD (під компасною розою вільна смуга), найновіші по центру
+            let bh: CGFloat = 26 * min(u, 1) + 2
+            let yRow = h - 5 - bh / 2
+            var chips: [(String, Bool, GraphicsContext.ResolvedText, CGSize)] = []
+            for al in items {
                 let r = ctx.resolve(Text(LocalizedStringKey(al.0)).font(.system(size: 12.5 * min(u, 1), weight: .semibold)).foregroundColor(.white))
-                let sz = r.measure(in: CGSize(width: w - 80, height: 30))
-                let bw = sz.width + 44, bh: CGFloat = 26 * min(u, 1) + 2
-                let y = yLast - CGFloat(shown.count - 1 - i) * step
-                let box = CGRect(x: c.x - bw / 2, y: y - bh / 2, width: bw, height: bh)
-                let cap = Path(roundedRect: box, cornerRadius: bh / 2, style: .continuous)
-                ctx.fill(cap, with: .color(.black.opacity(0.5)))
-                var icon = ctx.resolve(Image(systemName: al.1 ? "exclamationmark.triangle.fill" : "exclamationmark.circle.fill"))
+                chips.append((al.0, al.1, r, r.measure(in: CGSize(width: w - 80, height: 30))))
+            }
+            let reserve: CGFloat = max(show("wp") ? 100 * u : 24, 150)      // ліворуч унизу «WP ▸ …», праворуч чіпи EKF/VIBE
+            let avail = max(80, w - 2 * reserve)
+            var shown: [(String, Bool, GraphicsContext.ResolvedText, CGSize)] = []
+            var used: CGFloat = 0
+            for ch in chips.reversed() {
+                let cw = ch.3.width + 44 + (shown.isEmpty ? 0 : 6)
+                if used + cw > avail && !shown.isEmpty { break }
+                shown.insert(ch, at: 0); used += cw
+            }
+            var x = c.x - used / 2
+            for ch in shown {
+                let col: Color = ch.1 ? Color(red: 1, green: 0.27, blue: 0.23) : Color.orange
+                let bw = ch.3.width + 44
+                let box = CGRect(x: x, y: yRow - bh / 2, width: bw, height: bh)
+                ctx.fill(Path(roundedRect: box, cornerRadius: bh / 2, style: .continuous), with: .color(.black.opacity(0.5)))
+                var icon = ctx.resolve(Image(systemName: ch.1 ? "exclamationmark.triangle.fill" : "exclamationmark.circle.fill"))
                 icon.shading = .color(col)
-                ctx.draw(icon, at: CGPoint(x: box.minX + 17, y: y))
-                ctx.draw(r, at: CGPoint(x: box.minX + 30 + sz.width / 2, y: y))
+                ctx.draw(icon, at: CGPoint(x: box.minX + 17, y: yRow))
+                ctx.draw(ch.2, at: CGPoint(x: box.minX + 30 + ch.3.width / 2, y: yRow))
+                x += bw + 6
             }
             if show("wp") { ctx.draw(T(String(format: "WP ▸ %.0f m", t.wpDist), 11, .medium, 0.9), at: CGPoint(x: 12 * u, y: h - 12 * u), anchor: .leading) }
         }

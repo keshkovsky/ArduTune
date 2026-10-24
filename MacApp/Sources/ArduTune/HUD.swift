@@ -126,9 +126,10 @@ struct HUDView: View {
             let ppd = h / 42
             let rad = Double.pi / 180
             // Опорні розміри та зони (щоб елементи не накладалися)
-            let Rr = max(28, min(h * 0.12, 66 * u))
-            let rc = CGPoint(x: c.x, y: h - Rr - 30 * u)
-            let gr = Rr * 0.58, gOff = Rr * 2.4
+            let Rr = max(26, min(h * 0.105, 58 * u))
+            let alertBand: CGFloat = 26 * min(u, 1) + 2 + 5 + 8                  // смуга внизу під попередження
+            let rc = CGPoint(x: c.x, y: h - Rr - max(30 * u, alertBand + 2))
+            let gr = Rr * 0.54, gOff = Rr * 2.4
             let th = config.theme
             let ink = th.ink, accent = th.accent
             let wide = (c.x - gOff - gr > 108 * u) && h > 360          // дуги THR/BATT вміщуються між стрічками

@@ -182,9 +182,6 @@ struct HUDView: View {
                 }
             }
 
-            // Смуга-підсвітка рівня центру (як на еталоні)
-            ctx.fill(Path(CGRect(x: 0, y: c.y - 14 * u, width: w, height: 28 * u)), with: .color(ink.opacity(0.045)))
-
             // --- Шкала крену ---
             let Rb = 0.82 * max(48 * u, min(h * 0.26, c.y - 66 * u))
             if show("bank") {

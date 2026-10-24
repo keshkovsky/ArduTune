@@ -205,7 +205,7 @@ struct Card<Content: View>: View {
     init(title: String, icon: String, text: String?, @ViewBuilder content: () -> Content) { self.title = title; self.icon = icon; self.text = text; self.content = content() }
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Label(LocalizedStringKey(title), systemImage: icon).font(.headline)
+            Label { Text(LocalizedStringKey(title)) } icon: { CardIcon(name: icon) }.font(.headline)
             if let text { Text(LocalizedStringKey(text)).font(.callout).foregroundStyle(.secondary) }
             content
         }

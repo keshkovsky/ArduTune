@@ -33,9 +33,6 @@ final class VideoStore: NSObject {
     var showInHUD = false
     var hudOverlay = true
     var showStats = UserDefaults.standard.bool(forKey: "video.stats") { didSet { UserDefaults.standard.set(showStats, forKey: "video.stats"); updateStatsTimer() } }
-    /// Низька затримка: latency=0 у rtspsrc і sync=false на виводі. UDP: примусово protocols=udp для RTSP.
-    var lowLatency = UserDefaults.standard.bool(forKey: "video.lowLatency") { didSet { UserDefaults.standard.set(lowLatency, forKey: "video.lowLatency"); restartIfRunning() } }
-    var rtspUDP = UserDefaults.standard.bool(forKey: "video.rtspUDP") { didSet { UserDefaults.standard.set(rtspUDP, forKey: "video.rtspUDP"); restartIfRunning() } }
     var pingMs: Double?                 // nil: немає відповіді або адреса потоку невідома
     var pingHost: String?
     var frameAge = 0.0                  // секунд від останнього кадру
@@ -134,21 +131,6 @@ final class VideoStore: NSObject {
         status = String(localized: "Відео зникло, перепідключення (спроба \(attempts))…")
     }
 
-    private func restartIfRunning() { if wantGst && active == .gstreamer { launchGStreamer() } }
-
-    /// Накладає опції «Низька затримка» та «UDP» на pipeline з rtspsrc (текст у полі не змінюється).
-    func applyStreamOptions(_ pipe: String) -> String {
-        var s = pipe
-        guard s.contains("rtspsrc") else { return s }
-        func set(_ key: String, _ value: String, pattern: String) {
-            if let r = s.range(of: pattern, options: .regularExpression) { s.replaceSubrange(r, with: "\(key)=\(value)") }
-            else if let r = s.range(of: "rtspsrc") { s.insert(contentsOf: " \(key)=\(value)", at: r.upperBound) }
-        }
-        if lowLatency { set("latency", "0", pattern: #"latency=\d+"#) }
-        if rtspUDP { set("protocols", "udp", pattern: #"protocols=\w+"#) }
-        return s
-    }
-
     // MARK: Пінг і затримка (віджет)
     /// Адреса хоста з pipeline: rtsp://[user:pass@]host[:port]/… або host=… (udpsink/srtsrc тощо).
     var streamHost: String? {
@@ -194,8 +176,7 @@ final class VideoStore: NSObject {
         // Прибираємо appsink з кінця (формат Mission Planner) і виводимо JPEG-кадри в stdout
         var src = pipeline.trimmingCharacters(in: .whitespacesAndNewlines)
         if let r = src.range(of: #"!\s*appsink[^!]*$"#, options: .regularExpression) { src.removeSubrange(r) }
-        src = applyStreamOptions(src)
-        let full = src + " ! videoconvert ! jpegenc quality=80 ! fdsink fd=1" + (lowLatency ? " sync=false" : "")
+        let full = src + " ! videoconvert ! jpegenc quality=80 ! fdsink fd=1"
         let p = Process()
         p.executableURL = URL(fileURLWithPath: Self.gstPath)
         // gst-launch трактує кожен аргумент як окремий елемент, тому pipeline треба передати словами
@@ -211,7 +192,7 @@ final class VideoStore: NSObject {
         err.fileHandleForReading.readabilityHandler = { [weak self] h in
             let d = h.availableData
             if d.isEmpty { h.readabilityHandler = nil; return }
-            if let s = String(data: d, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty {
+            if let s = String(data: d, encoding: .utf8)?.split(separator: "\n").filter({ !$0.contains("pxbackend-WARNING") }).joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty {
                 DispatchQueue.main.async { self?.status = String(s.suffix(200)) }
             }
         }
@@ -411,12 +392,6 @@ struct VideoTab: View {
                         Button { openWindow(id: "video") } label: { Label("Відкрити у вікні", systemImage: "rectangle.on.rectangle") }
                         Toggle("Показувати на HUD", isOn: Binding(get: { v.showInHUD }, set: { v.showInHUD = $0 })).toggleStyle(.checkbox)
                         Toggle("Пінг і FPS на відео", isOn: Binding(get: { v.showStats }, set: { v.showStats = $0 })).toggleStyle(.checkbox)
-                    }
-                    HStack {
-                        Toggle("Низька затримка", isOn: Binding(get: { v.lowLatency }, set: { v.lowLatency = $0 })).toggleStyle(.checkbox)
-                            .help("latency=0 у rtspsrc і sync=false на виводі: менша затримка, але менш плавне відео при втратах пакетів")
-                        Toggle("RTSP через UDP", isOn: Binding(get: { v.rtspUDP }, set: { v.rtspUDP = $0 })).toggleStyle(.checkbox)
-                            .help("Примусово protocols=udp. Якщо відео не стартує, вимкніть: через тунель UDP може не проходити")
                     }
                     if !v.status.isEmpty { Text(LocalizedStringKey(v.status)).font(.caption).foregroundStyle(.secondary) }
                     if v.fps > 0 { Text(String(format: loc("%.0f кадрів/с"), v.fps)).font(.caption).foregroundStyle(.secondary) }

@@ -31,7 +31,6 @@ final class VideoStore: NSObject {
     var frame: NSImage?
     var fps = 0.0
     var showInHUD = false
-    var hudOverlay = true
     var showStats = UserDefaults.standard.bool(forKey: "video.stats") { didSet { UserDefaults.standard.set(showStats, forKey: "video.stats"); updateStatsTimer() } }
     var pingMs: Double?                 // nil: немає відповіді або адреса потоку невідома
     var pingHost: String?
@@ -253,7 +252,6 @@ struct CameraPreview: NSViewRepresentable {
 struct VideoSurface: View {
     let video: VideoStore
     let t: Telemetry
-    var overlay = true
 
     var body: some View {
         ZStack {
@@ -265,7 +263,6 @@ struct VideoSurface: View {
                 else { ProgressView("Очікування кадрів…").controlSize(.large) }
             case .none: ContentUnavailableView("Відео не запущено", systemImage: "video.slash")
             }
-            if overlay && video.hudOverlay && video.running { VideoOverlay(t: t) }
             if video.showStats && video.active == .gstreamer { VideoStatsBadge(video: video).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading).padding(10) }
         }
     }
@@ -289,30 +286,6 @@ struct VideoStatsBadge: View {
     }
 }
 
-struct VideoOverlay: View {
-    let t: Telemetry
-    var body: some View {
-        VStack {
-            HStack {
-                Text(lk(t.armed ? "ARMED" : "DISARMED")).font(.system(size: 14, weight: .bold)).foregroundStyle(t.armed ? .green : .red)
-                Text(lk(t.mode ?? "")).foregroundStyle(.white)
-                Spacer()
-                Text(String(format: "%.2f V  %.1f A", t.batteryV, t.batteryA)).foregroundStyle(.white)
-            }
-            Spacer()
-            HStack {
-                Text(String(format: loc("ALT %.1f м"), t.altRel))
-                Text(String(format: loc("GS %.1f м/с"), t.groundSpeed))
-                Text(String(format: "HDG %.0f°", t.heading))
-                Spacer()
-                Text("Sats \(t.sats)")
-            }.foregroundStyle(.white)
-        }
-        .font(.system(size: 13, weight: .semibold, design: .monospaced))
-        .shadow(color: .black, radius: 2)
-        .padding(12)
-    }
-}
 
 /// Вкладка Video у Flight Data.
 struct VideoTab: View {
@@ -329,6 +302,11 @@ struct VideoTab: View {
         HStack(alignment: .top, spacing: 14) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
+                    HStack(spacing: 14) {
+                        Button { openWindow(id: "video") } label: { Label("Відкрити у вікні", systemImage: "rectangle.on.rectangle") }
+                        Toggle("Показувати на HUD", isOn: Binding(get: { v.showInHUD }, set: { v.showInHUD = $0 })).toggleStyle(.checkbox)
+                        Toggle("Пінг і FPS на відео", isOn: Binding(get: { v.showStats }, set: { v.showStats = $0 })).toggleStyle(.checkbox)
+                    }
                     GroupBox("Камера") {
                         Grid(alignment: .leading, horizontalSpacing: 10, verticalSpacing: 8) {
                             GridRow {
@@ -345,8 +323,6 @@ struct VideoTab: View {
                                 Picker("", selection: Binding(get: { v.selectedFormat }, set: { v.selectedFormat = $0 })) {
                                     ForEach(v.formats) { Text(lk($0.title)).tag($0.id) }
                                 }.labelsHidden().frame(width: 280)
-                                VStack(alignment: .leading, spacing: 4) {
-                                                        }.gridCellColumns(2)
                             }
                         }.padding(6)
                     }
@@ -389,11 +365,6 @@ struct VideoTab: View {
                             Text("Потік Herelink / Cube Controller по RTSP (H.264, мінімальна затримка). Потрібні GStreamer.framework і з'єднання з мережею Herelink.").font(.caption2).foregroundStyle(.secondary)
                         }.padding(6)
                     }
-                    HStack {
-                        Button { openWindow(id: "video") } label: { Label("Відкрити у вікні", systemImage: "rectangle.on.rectangle") }
-                        Toggle("Показувати на HUD", isOn: Binding(get: { v.showInHUD }, set: { v.showInHUD = $0 })).toggleStyle(.checkbox)
-                        Toggle("Пінг і FPS на відео", isOn: Binding(get: { v.showStats }, set: { v.showStats = $0 })).toggleStyle(.checkbox)
-                    }
                     if !v.status.isEmpty { Text(LocalizedStringKey(v.status)).font(.caption).foregroundStyle(.secondary) }
                     if v.fps > 0 { Text(String(format: loc("%.0f кадрів/с"), v.fps)).font(.caption).foregroundStyle(.secondary) }
                 }
@@ -432,7 +403,7 @@ struct VideoWindow: View {
     }
 
     var body: some View {
-        VideoSurface(video: s.video, t: s.t, overlay: !hudOn)
+        VideoSurface(video: s.video, t: s.t)
             .overlay {
                 if hudOn { HUDView(t: s.t, navSource: s.ps.navSource, alerts: [], config: config).opacity(opacity).allowsHitTesting(false) }
             }

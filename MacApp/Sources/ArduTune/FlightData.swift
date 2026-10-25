@@ -75,7 +75,7 @@ struct FlightView: View {
     var hudPane: some View {
         ZStack {
             if s.video.showInHUD && s.video.running {
-                VideoSurface(video: s.video, t: s.t, overlay: false).clipShape(RoundedRectangle(cornerRadius: 10))
+                VideoSurface(video: s.video, t: s.t).clipShape(RoundedRectangle(cornerRadius: 10))
             }
             HUDView(t: s.t, navSource: navSource, alerts: fs.alerts, config: hudConfig)
         }

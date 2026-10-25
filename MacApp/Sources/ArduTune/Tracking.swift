@@ -16,6 +16,8 @@ enum Aim {
         let d = 2 * 6_371_000 * asin(min(1, h.squareRoot()))
         return AimResult(azimuth: az, elevation: atan2(height, max(d, 0.001)) * 180 / .pi, distance: d)
     }
+    /// Коротко: «азимут · відстань».
+    static func textShort(_ r: AimResult) -> String { String(format: "%03.0f°  ", r.azimuth) + Units.dist(r.distance) }
     static func text(_ r: AimResult) -> String {
         String(format: "%03.0f°  ·  %+.0f°  ·  ", r.azimuth, r.elevation) + Units.dist(r.distance)
     }

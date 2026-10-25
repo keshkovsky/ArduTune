@@ -408,26 +408,32 @@ struct VideoWindow: View {
             .overlay {
                 if hudOn { HUDView(t: s.t, navSource: s.ps.navSource, alerts: [], config: config).opacity(opacity).allowsHitTesting(false) }
             }
-            .overlay(alignment: .topLeading) {
-                if mapOn { GeometryReader { g in MiniMapPanel(area: g.size).padding(10) } }
+            .overlay {
+                if mapOn { GeometryReader { g in ZStack(alignment: .bottomLeading) { Color.clear.allowsHitTesting(false); MiniMapPanel(area: g.size).padding(10) } } }
             }
             .frame(minWidth: 480, minHeight: 300)
-            .toolbar {
-                ToolbarItem {
-                    Button { s.video.running ? s.video.stopAll() : s.video.startGStreamer() } label: { Image(systemName: s.video.running ? "stop.fill" : "play.fill") }
-                        .help(lk(s.video.running ? "Зупинити відео" : "Запустити відео"))
-                }
-                ToolbarItem {
-                    Toggle(isOn: $mapOn) { Label("Мінікарта", systemImage: "map") }.toggleStyle(.button).help("Мінікарта з центром на апараті")
-                }
-                ToolbarItem {
-                    Toggle(isOn: $hudOn) { Label("HUD", systemImage: "gauge.with.dots.needle.67percent") }.toggleStyle(.button).help("Дублювати HUD поверх відео")
-                }
-                ToolbarItem {
-                    Button { showSettings.toggle() } label: { Label("Налаштувати HUD", systemImage: "slider.horizontal.3") }.disabled(!hudOn)
-                        .popover(isPresented: $showSettings, arrowEdge: .bottom) { settings }
-                }
-            }
+            .toolbar { videoToolbar }
+    }
+
+    @ToolbarContentBuilder var videoToolbar: some ToolbarContent {
+        ToolbarItem {
+            Button { s.video.running ? s.video.stopAll() : s.video.startGStreamer() } label: {
+                Label(lk(s.video.running ? "Стоп" : "Старт"), systemImage: s.video.running ? "stop.fill" : "play.fill").labelStyle(.titleAndIcon)
+            }.help(lk(s.video.running ? "Зупинити відео" : "Запустити відео"))
+        }
+        if #available(macOS 26.0, *) { ToolbarSpacer(.fixed) }
+        ToolbarItem {
+            Toggle(isOn: $mapOn) { Label("Мінікарта", systemImage: "map").labelStyle(.titleAndIcon) }.toggleStyle(.button).help("Мінікарта з центром на апараті")
+        }
+        if #available(macOS 26.0, *) { ToolbarSpacer(.fixed) }
+        ToolbarItem {
+            Toggle(isOn: $hudOn) { Label("HUD", systemImage: "gauge.with.dots.needle.67percent").labelStyle(.titleAndIcon) }.toggleStyle(.button).help("Дублювати HUD поверх відео")
+        }
+        if #available(macOS 26.0, *) { ToolbarSpacer(.fixed) }
+        ToolbarItem {
+            Button { showSettings.toggle() } label: { Label("Налаштувати HUD", systemImage: "slider.horizontal.3").labelStyle(.titleAndIcon) }.disabled(!hudOn)
+                .popover(isPresented: $showSettings, arrowEdge: .bottom) { settings }
+        }
     }
 
     func toggle(_ raw: Binding<String>, _ key: String) {

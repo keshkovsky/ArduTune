@@ -3656,3 +3656,6 @@
 "Запустити відео" = "Start video";
 "Мінікарта" = "Mini map";
 "Мінікарта з центром на апараті" = "Mini map centered on the vehicle";
+"До наступної точки: азимут і відстань" = "To the next point: azimuth and distance";
+"До кінцевої точки: азимут і відстань" = "To the final point: azimuth and distance";
+"Що показувати на мінікарті" = "What to show on the mini map";

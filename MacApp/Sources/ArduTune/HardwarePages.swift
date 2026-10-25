@@ -72,13 +72,14 @@ struct OptionalHardwareView: View {
         ConfigGate {
             PageTitle(title: String(localized: "Додаткове обладнання"), subtitle: String(localized: "Далекомір, камера, підвіс, оптичний потік і датчики перешкод. Показано лише те, що є в прошивці вашого польотника."))
             Picker("", selection: $tab) {
-                Text("Далекомір").tag("rng"); Text("Камера").tag("cam"); Text("Підвіс").tag("mnt"); Text("VTX").tag("vtx"); Text("Оптичний потік").tag("flow"); Text("Перешкоди").tag("prx"); Text("Парашут").tag("chute"); Text("Захват").tag("grip")
+                Text("Далекомір").tag("rng"); Text("Камера").tag("cam"); Text("Підвіс").tag("mnt"); Text("VTX").tag("vtx"); Text("Оптичний потік").tag("flow"); Text("Перешкоди").tag("prx"); Text("Парашут").tag("chute"); Text("Захват").tag("grip"); Text("Антенний трекер").tag("trk")
             }.pickerStyle(.segmented).labelsHidden()
             switch tab {
             case "cam": camera
             case "mnt": gimbal
             case "chute": parachute
             case "grip": gripper
+            case "trk": tracker
             case "vtx": vtx
             case "flow":
                 ParamsCard(title: String(localized: "Оптичний потік"), icon: "viewfinder", text: String(localized: "Датчик руху відносно землі для утримання позиції без GPS. Потрібен також далекомір, спрямований вниз."), params: ["FLOW_TYPE", "FLOW_ORIENT_YAW", "FLOW_POS_X", "FLOW_POS_Y", "FLOW_POS_Z", "FLOW_FXSCALER", "FLOW_FYSCALER", "FLOW_HGT_OVR"])
@@ -170,6 +171,39 @@ struct OptionalHardwareView: View {
                     Label("Для випуску за каналом пульта призначте йому функцію «Parachute Release» (RCx_OPTION = 22), «Parachute Enable» (21) або «Parachute 3pos» (23).", systemImage: "dot.radiowaves.left.and.right").font(.caption).foregroundStyle(.secondary)
                 }
                 ParamsCard(title: String(localized: "Механізм і умови випуску"), icon: "custom:parachute", text: String(localized: "Тип пристрою, положення серво, мінімальна висота, затримка й критична швидкість падіння."), params: Self.chute)
+            }
+        }
+    }
+
+    // MARK: Антенний трекер (прошивка AntennaTracker)
+
+    static let trkTarget = ["SYSID_TARGET", "START_LATITUDE", "START_LONGITUDE", "ALT_SOURCE", "DISTANCE_MIN", "MAV_UPDATE_RATE"]
+    static let trkServo = ["SERVO_YAW_TYPE", "SERVO_PITCH_TYPE", "ONOFF_YAW_RATE", "ONOFF_PITCH_RATE", "ONOFF_YAW_MINT", "ONOFF_PITCH_MINT"]
+    static let trkRange = ["YAW_RANGE", "PITCH_MIN", "PITCH_MAX", "YAW_TRIM", "PITCH_TRIM", "YAW_SLEW_TIME", "PITCH_SLEW_TIME", "MIN_REVERSE_TIME", "STARTUP_DELAY"]
+    static let trkPID = ["P", "I", "IMAX", "D", "FF", "FLTT", "FLTE", "FLTD", "SMAX", "PDMX", "D_FF", "NTF", "NEF"]
+    static let trkScan = ["SCAN_SPEED_YAW", "SCAN_SPEED_PIT", "AUTO_OPTIONS"]
+
+    var tracker: some View {
+        let yawOut = outputs([71]), pitchOut = outputs([72])
+        return VStack(alignment: .leading, spacing: 14) {
+            if !ps.has("YAW_RANGE") {
+                ContentUnavailableView { Label { Text("Антенний трекер недоступний") } icon: { Image(systemName: "antenna.radiowaves.left.and.right").scaleEffect(1.6) } } description: { Text("Параметри трекера з'являються, коли підключено плату з прошивкою AntennaTracker (або відкрито її .param-файл у розділі Parameters).") }
+            } else {
+                Card(title: String(localized: "Антенний трекер"), icon: "antenna.radiowaves.left.and.right", text: String(localized: "Поворотна антена на двох серво (азимут і нахил) наводиться на апарат за його позицією, яку отримує по MAVLink. Тут налаштовуються діапазони, серво й регулятори наведення.")) {
+                    if yawOut.isEmpty { Label("Жоден вихід серво не має функції «TrackerYaw» (SERVOn_FUNCTION = 71). Призначте її у вкладці Servo Output.", systemImage: "info.circle").font(.caption).foregroundStyle(.secondary) }
+                    else { Label(lk(loc("Азимут (yaw) виведено на: ") + yawOut.map { "SERVO\($0)" }.joined(separator: ", ")), systemImage: "checkmark.circle").font(.caption).foregroundStyle(.secondary) }
+                    if pitchOut.isEmpty { Label("Жоден вихід серво не має функції «TrackerPitch» (SERVOn_FUNCTION = 72). Призначте її у вкладці Servo Output.", systemImage: "info.circle").font(.caption).foregroundStyle(.secondary) }
+                    else { Label(lk(loc("Нахил (pitch) виведено на: ") + pitchOut.map { "SERVO\($0)" }.joined(separator: ", ")), systemImage: "checkmark.circle").font(.caption).foregroundStyle(.secondary) }
+                    Label("Режими трекера (Auto, Manual, Scan, Servo test) перемикаються на верхній панелі. Позиція станції береться з GPS трекера або з START_LATITUDE/START_LONGITUDE.", systemImage: "dot.radiowaves.left.and.right").font(.caption).foregroundStyle(.secondary)
+                }
+                ParamsCard(title: String(localized: "Ціль і позиція"), icon: "scope", text: String(localized: "Який апарат відстежується й звідки трекер бере початкову позицію та висоту."), params: Self.trkTarget)
+                ParamsCard(title: String(localized: "Серво"), icon: "gearshape.2", text: String(localized: "Тип серво (позиційні, on/off або безперервного обертання) для азимуту й нахилу."), params: Self.trkServo)
+                ParamsCard(title: String(localized: "Діапазони й швидкість"), icon: "arrow.left.and.right", text: String(localized: "Кути руху, підгонка нуля, швидкість повороту й затримка запуску."), params: Self.trkRange)
+                AdvancedSection(key: "trk.advanced", subtitle: String(localized: "Регулятори наведення (PID) азимуту й нахилу, режим сканування.")) {
+                    ParamsCard(title: String(localized: "Регулятор нахилу (pitch)"), icon: "slider.horizontal.3", params: Self.trkPID.map { "PITCH2SRV_" + $0 })
+                    ParamsCard(title: String(localized: "Регулятор азимуту (yaw)"), icon: "slider.horizontal.3", params: Self.trkPID.map { "YAW2SRV_" + $0 })
+                    ParamsCard(title: String(localized: "Сканування"), icon: "dot.radiowaves.left.and.right", text: String(localized: "Швидкість обертання в режимі пошуку цілі."), params: Self.trkScan)
+                }
             }
         }
     }

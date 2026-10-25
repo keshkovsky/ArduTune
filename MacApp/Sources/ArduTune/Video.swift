@@ -345,7 +345,8 @@ struct VideoTab: View {
                                 Picker("", selection: Binding(get: { v.selectedFormat }, set: { v.selectedFormat = $0 })) {
                                     ForEach(v.formats) { Text(lk($0.title)).tag($0.id) }
                                 }.labelsHidden().frame(width: 280)
-                                Toggle("HUD Overlay", isOn: Binding(get: { v.hudOverlay }, set: { v.hudOverlay = $0 })).toggleStyle(.checkbox).gridCellColumns(2)
+                                VStack(alignment: .leading, spacing: 4) {
+                                                        }.gridCellColumns(2)
                             }
                         }.padding(6)
                     }

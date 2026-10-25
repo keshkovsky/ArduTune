@@ -19,7 +19,7 @@ struct MissionPage: View {
         HStack(spacing: 0) {
             VStack(spacing: 0) {
                 Group {
-                    if m.view3D { Mission3DPane(m: m, layer: opt.layer, topInset: topH) }
+                    if m.view3D { Mission3DPane(m: m, layer: opt.layer, topInset: topH).background(PlanKeyMonitor { e in handleKey(e, cursor: nil) }) }
                     else { MissionMapHost(ctl: ctl, opt: opt, onContext: showMenu, onPinContext: showPinMenu, onKey: handleKey) }
                 }
                     .overlay(alignment: .top) {
@@ -218,7 +218,7 @@ struct MissionMapHost: View {
             + m.surveys.map { MissionMap.ZoneVis(id: $0.id, kind: 5200, pts: $0.pts.map { [$0.lat, $0.lon] }, radius: 0) }
         let home: CLLocationCoordinate2D? = m.home.map { .init(latitude: $0.lat, longitude: $0.lon) } ?? (s.t.homeSet ? .init(latitude: s.t.homeLat, longitude: s.t.homeLon) : nil)
         MissionMap(
-            ctl: ctl, layer: opt.layer, zones: zones, pois: s.poi.items, wps: wps, path: m.routeCoords, pathIDs: m.routeIDs, dimPath: m.section == .fence || m.section == .rally, blocked: { m.blocked }, home: home,
+            ctl: ctl, layer: opt.layer, zones: zones, pois: s.poi.items, wps: wps, path: m.routeCoords, pathIDs: m.routeIDs, dimPath: m.section == .fence || m.section == .rally, blocked: { m.blocked }, home: home, homeEditable: m.home != nil,
             vehicle: simCur.map { m.sim.coord($0) } ?? (fix ? .init(latitude: s.t.lat, longitude: s.t.lon) : nil), vehicleHeading: simCur != nil ? m.sim.headingDeg : s.t.heading,
             rays: simCur != nil ? nil : (fix ? RayData.current(yaw: s.t.yaw, magHdg: s.t.magHdg, cog: s.t.cog, speed: s.t.groundSpeed, rays: opt.rays) : nil),
             rulerA: m.ruler.a, rulerB: m.ruler.b, rulerLabel: m.ruler.result.map { RulerLayer.distanceText($0.distance) + "  ·  " + String(format: "%03.0f°", $0.trueAz) } ?? "",
@@ -303,6 +303,10 @@ struct MissionToolbar: View {
                     if !compact { Text("м").foregroundStyle(.secondary) }
                 }.help("Висота нових точок, м")
             }
+            HStack(spacing: 2) {
+                Button { m.undo() } label: { Image(systemName: "arrow.uturn.backward") }.help("Скасувати (⌘Z)")
+                Button { m.redo() } label: { Image(systemName: "arrow.uturn.forward") }.help("Повторити (⇧⌘Z)")
+            }.buttonStyle(.borderless)
             Menu {
                 ForEach(MapLayer.groups, id: \.0) { g in
                     Section(lk(g.0)) { ForEach(g.1) { l in Button { opt.layer = l } label: { if opt.layer == l { Label(LocalizedStringKey(l.title), systemImage: "checkmark") } else { Text(LocalizedStringKey(l.title)) } } } }
@@ -699,7 +703,7 @@ struct MissionRoutePanel: View {
         VStack(spacing: 0) {
             header
             Divider()
-            if m.items.isEmpty {
+            if m.items.isEmpty && m.home == nil {
                 ContentUnavailableView {
                     Label("Місія порожня", systemImage: "map")
                 } description: {
@@ -708,6 +712,14 @@ struct MissionRoutePanel: View {
                 .frame(maxHeight: .infinity)
             } else {
                 List(selection: $m.selected) {
+                    if let h = m.home {
+                        HomeRow(home: h).tag(MissionStore.homeID)
+                            .contextMenu {
+                                Button("Копіювати координати") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(MissionStore.coordString(h.lat, h.lon), forType: .string) }
+                                Divider()
+                                Button("Видалити Home", role: .destructive) { m.selected = MissionStore.homeID; _ = m.deleteSelected() }
+                            }
+                    }
                     ForEach(Array(m.items.enumerated()), id: \.element.id) { i, it in
                         MissionRow(index: i + 1, it: it, current: s.connected && !m.dirty && s.t.wpSeq == i + 1)
                             .tag(it.id)
@@ -722,9 +734,12 @@ struct MissionRoutePanel: View {
                     .onDelete { for i in $0 { m.remove(m.items[i].id) } }
                 }
                 .listStyle(.inset)
-                .onDeleteCommand { if let id = m.selected { m.remove(id) } }
+                .onDeleteCommand { _ = m.deleteSelected() }
             }
-            if let id = m.selected, m.items.contains(where: { $0.id == id }) {
+            if m.selected == MissionStore.homeID, m.home != nil {
+                Divider()
+                HomeEditor(m: m).frame(maxHeight: 330)
+            } else if let id = m.selected, m.items.contains(where: { $0.id == id }) {
                 Divider()
                 MissionItemEditor(m: m, id: id).frame(maxHeight: 330)
             }
@@ -908,4 +923,78 @@ struct MGRSEditField: View {
         }
         .onAppear { text = Coords.mgrs(lat, lon) ?? "" }
     }
+}
+
+// MARK: - Home у плані
+
+struct HomeRow: View {
+    let home: HomePoint
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "house.fill").font(.system(size: 11, weight: .bold)).foregroundStyle(.white)
+                .frame(width: 22, height: 22).background(Color.green, in: Circle())
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Home").font(.callout).lineLimit(1)
+                Text(lk(String(format: loc("%.0f м · "), home.alt) + Coords.pair(home.lat, home.lon, decimals: 5))).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 1)
+    }
+}
+
+/// Редактор домашньої точки плану: координати, висота, видалення.
+struct HomeEditor: View {
+    @Bindable var m: MissionStore
+    @State private var mgrsBad = false
+
+    func num(_ kp: WritableKeyPath<HomePoint, Double>) -> Binding<Double> {
+        Binding(get: { m.home?[keyPath: kp] ?? 0 }, set: { v in if var h = m.home { h[keyPath: kp] = v; m.home = h } })
+    }
+    func field(_ title: String, _ b: Binding<Double>) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(LocalizedStringKey(title)).font(.caption2).foregroundStyle(.secondary)
+            TextField("", value: b, format: .number.precision(.fractionLength(0...7))).textFieldStyle(.roundedBorder)
+        }
+    }
+
+    var body: some View {
+        if let h = m.home {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Label("Home", systemImage: "house.fill").font(.headline)
+                        Spacer()
+                        Button { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(MissionStore.coordString(h.lat, h.lon), forType: .string) } label: { Image(systemName: "doc.on.doc") }.help("Копіювати координати")
+                        Button(role: .destructive) { m.selected = MissionStore.homeID; _ = m.deleteSelected() } label: { Image(systemName: "trash") }.help("Видалити Home")
+                    }.buttonStyle(.borderless)
+                    HStack { field("Широта", num(\.lat)); field("Довгота", num(\.lon)) }
+                    if Coords.isMGRS { MGRSEditField(lat: h.lat, lon: h.lon) { la, lo in m.home = HomePoint(lat: la, lon: lo, alt: h.alt) }.id("\(h.lat),\(h.lon)") }
+                    field("Висота, м", num(\.alt))
+                    Text("Home у плані записується як перша точка місії (seq 0). Польотник може підставити свій Home, якщо GPS уже його встановив.").font(.caption2).foregroundStyle(.secondary)
+                }.padding(12)
+            }
+        }
+    }
+}
+
+/// Гарячі клавіші плану (⌘Z, ⇧⌘Z, ⌘C/⌘X/⌘V, Delete) у 3D-режимі, де немає MKMapView з власним монітором подій.
+struct PlanKeyMonitor: NSViewRepresentable {
+    let onKey: (NSEvent) -> Bool
+    final class V: NSView {
+        var onKey: ((NSEvent) -> Bool)?
+        var monitor: Any?
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if let m = monitor { NSEvent.removeMonitor(m); monitor = nil }
+            guard window != nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] e in
+                guard let self, let w = self.window, e.window === w, w.isKeyWindow, !(w.firstResponder is NSText) else { return e }
+                return (self.onKey?(e) ?? false) ? nil : e
+            }
+        }
+        deinit { if let m = monitor { NSEvent.removeMonitor(m) } }
+    }
+    func makeNSView(context: Context) -> V { let v = V(); v.onKey = onKey; return v }
+    func updateNSView(_ v: V, context: Context) { v.onKey = onKey }
 }

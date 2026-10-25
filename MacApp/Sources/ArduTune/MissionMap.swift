@@ -2,7 +2,9 @@ import SwiftUI
 import MapKit
 import AppKit
 
-final class WPPin: MKPointAnnotation { var wid = UUID(); var cmd = 16 }
+class WPPin: MKPointAnnotation { var wid = UUID(); var cmd = 16 }
+/// Домашня точка плану: вибирається, перетягується й видаляється, як інші точки.
+final class HomeWPPin: WPPin { override init() { super.init(); wid = MissionStore.homeID; cmd = -1 } }
 
 /// MKMapView для редагування місії: клік додає точку (у режимі додавання), точки перетягуються вручну, ПКМ дає меню.
 /// Події ловимо локальним монітором: внутрішні в'юшки MapKit споживають натискання раніше за перевизначення mouseDown.
@@ -116,6 +118,7 @@ struct MissionMap: NSViewRepresentable {
     let dimPath: Bool
     let blocked: () -> [CGRect]
     let home: CLLocationCoordinate2D?
+    var homeEditable = false
     let vehicle: CLLocationCoordinate2D?
     let vehicleHeading: Double
     var rays: RayData? = nil
@@ -173,7 +176,7 @@ struct MissionMap: NSViewRepresentable {
         var pathOv: [MKOverlay] = []
         var radiusOv: [MKOverlay] = []
         var frontOv: [MKOverlay] = []
-        var homePin: MapPin?, veh: MapPin?, vehRot = -999, vehHeading = 0.0
+        var homePin: MapPin?, homeWP: HomeWPPin?, veh: MapPin?, vehRot = -999, vehHeading = 0.0
 
         // промені напрямку борту (компас · GPS · гіроскоп)
         var raysPin: MapPin?, raysKey = "", raysData: RayData?
@@ -275,10 +278,18 @@ struct MissionMap: NSViewRepresentable {
                 m.addAnnotations(poiPins)
             }
             // Home
-            if let c = p.home {
+            if let c = p.home, p.homeEditable {
+                if let a = homePin { m.removeAnnotation(a); homePin = nil }
+                if let a = homeWP { if (a.coordinate.latitude != c.latitude || a.coordinate.longitude != c.longitude) && homeWP !== (m as? MissionMKMapView)?.dragPin { a.coordinate = c } }
+                else { let a = HomeWPPin(); a.title = "Home"; a.coordinate = c; homeWP = a; m.addAnnotation(a) }
+            } else if let c = p.home {
+                if let a = homeWP { m.removeAnnotation(a); homeWP = nil }
                 if let a = homePin { if a.coordinate.latitude != c.latitude || a.coordinate.longitude != c.longitude { a.coordinate = c } }
                 else { let a = MapPin(); a.kind = "home"; a.title = "Home"; a.coordinate = c; homePin = a; m.addAnnotation(a) }
-            } else if let a = homePin { m.removeAnnotation(a); homePin = nil }
+            } else {
+                if let a = homePin { m.removeAnnotation(a); homePin = nil }
+                if let a = homeWP { m.removeAnnotation(a); homeWP = nil }
+            }
             // апарат і лінія до поточної цілі
             if let c = p.vehicle {
                 if veh == nil { let a = MapPin(); a.kind = "veh"; a.coordinate = c; veh = a; m.addAnnotation(a) } else { veh!.coordinate = c }
@@ -319,6 +330,7 @@ struct MissionMap: NSViewRepresentable {
             if st != styleSig {
                 styleSig = st
                 for a in pins { if let v = m.view(for: a) { v.image = image(for: a, p) } }
+                if let h = homeWP, let v = m.view(for: h) { v.image = FlightMap.Coord.badge("house.fill", fg: .white, bg: p.selected == MissionStore.homeID ? .systemOrange : .systemGreen, size: p.selected == MissionStore.homeID ? 32 : 28) }
             }
         }
 
@@ -356,6 +368,13 @@ struct MissionMap: NSViewRepresentable {
 
         // MARK: Делегат
         func mapView(_ m: MKMapView, viewFor a: MKAnnotation) -> MKAnnotationView? {
+            if let a = a as? HomeWPPin {
+                let v = m.dequeueReusableAnnotationView(withIdentifier: "homeWP") ?? MKAnnotationView(annotation: a, reuseIdentifier: "homeWP")
+                v.annotation = a; v.isDraggable = false; v.canShowCallout = false; v.toolTip = "Home"
+                let sel = parent?.selected == MissionStore.homeID
+                v.image = FlightMap.Coord.badge("house.fill", fg: .white, bg: sel ? .systemOrange : .systemGreen, size: sel ? 32 : 28)
+                return v
+            }
             if let a = a as? WPPin {
                 let v = m.dequeueReusableAnnotationView(withIdentifier: "wp") ?? MKAnnotationView(annotation: a, reuseIdentifier: "wp")
                 v.annotation = a; v.isDraggable = false; v.canShowCallout = false

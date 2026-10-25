@@ -3592,3 +3592,8 @@
 "Формат координат у Flight Data та Mission: десяткові градуси або MGRS (військова сітка, WGS84). Редактор точок і файли місій лишаються в градусах." = "Coordinate format in Flight Data and Mission: decimal degrees or MGRS (military grid, WGS84). The point editor and mission files stay in degrees.";
 "Градуси" = "Degrees";
 "%.0f м · " = "%.0f m · ";
+"Home у плані видалено" = "Plan Home deleted";
+"Видалити Home" = "Delete Home";
+"Home у плані записується як перша точка місії (seq 0). Польотник може підставити свій Home, якщо GPS уже його встановив." = "The plan Home is written as the first mission point (seq 0). The flight controller may substitute its own Home if GPS has already set one.";
+"Скасувати (⌘Z)" = "Undo (⌘Z)";
+"Повторити (⇧⌘Z)" = "Redo (⇧⌘Z)";

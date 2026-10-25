@@ -99,6 +99,7 @@ struct MissionItem: Identifiable, Codable, Equatable {
 
 struct WireItem: Codable { var seq: Int, cmd: Int, frame: Int, p1: Double, p2: Double, p3: Double, p4: Double, lat: Double, lon: Double, alt: Double, auto: Bool }
 struct HomePoint: Codable, Equatable { var lat: Double, lon: Double, alt: Double }
+
 struct MissionIssue: Identifiable { let id = UUID(); let level: Int; let text: String }       // 0 інфо, 1 попередження
 
 // MARK: - Геозона і Rally
@@ -320,7 +321,7 @@ final class MissionStore {
         items = s.items; zones = s.zones; rally = s.rally; home = s.home; surveys = s.surveys
         restoring = false
         lastKind = ""
-        if let sel = selected, !items.contains(where: { $0.id == sel }), !zones.contains(where: { $0.pts.contains { $0.id == sel } }), !rally.contains(where: { $0.id == sel }) { selected = nil }
+        if let sel = selected, !(sel == Self.homeID && home != nil), !items.contains(where: { $0.id == sel }), !zones.contains(where: { $0.pts.contains { $0.id == sel } }), !rally.contains(where: { $0.id == sel }) { selected = nil }
     }
     var canUndo: Bool { !undoStack.isEmpty }
     var canRedo: Bool { !redoStack.isEmpty }
@@ -332,6 +333,9 @@ final class MissionStore {
         guard let s = redoStack.popLast() else { note = String(localized: "Немає що повторювати"); return }
         undoStack.append(snap); restore(s); note = String(localized: "Повторено")
     }
+
+    /// Ідентифікатор точки Home у виборі (рядок списку й позначка на карті).
+    static let homeID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
 
     // MARK: Копіювання / вставка
 
@@ -348,6 +352,7 @@ final class MissionStore {
     /// Координати та назва вибраної точки поточного розділу.
     func selectedPoint() -> (CLLocationCoordinate2D, String)? {
         guard let id = selected else { return nil }
+        if id == Self.homeID, let h = home { return (.init(latitude: h.lat, longitude: h.lon), "Home") }
         if let i = items.firstIndex(where: { $0.id == id }), items[i].hasPos { return (items[i].coord, String(localized: "точку \(i + 1)")) }
         if let z = zoneOf(vertex: id), let v = z.pts.first(where: { $0.id == id }) { return (v.coord, "вершину") }
         if let sv = surveyOf(vertex: id), let v = sv.pts.first(where: { $0.id == id }) { return (v.coord, "вершину ділянки") }
@@ -364,6 +369,7 @@ final class MissionStore {
     }
     func deleteSelected() -> Bool {
         guard let id = selected else { return false }
+        if id == Self.homeID, home != nil { home = nil; selected = nil; note = String(localized: "Home у плані видалено"); return true }
         if items.contains(where: { $0.id == id }) { remove(id); return true }
         if zoneOf(vertex: id) != nil { removeVertex(id); return true }
         if surveyOf(vertex: id) != nil { removeSurveyVertex(id); return true }
@@ -410,6 +416,7 @@ final class MissionStore {
 
     /// Переміщення будь-якої редагованої точки (маршрут, вершина геозони, Rally).
     func moveAny(_ id: UUID, to c: CLLocationCoordinate2D) {
+        if id == Self.homeID, let h = home { home = HomePoint(lat: c.latitude, lon: c.longitude, alt: h.alt); return }
         if items.contains(where: { $0.id == id }) { update(id) { $0.lat = c.latitude; $0.lon = c.longitude }; return }
         for zi in zones.indices { if let vi = zones[zi].pts.firstIndex(where: { $0.id == id }) { zones[zi].pts[vi].lat = c.latitude; zones[zi].pts[vi].lon = c.longitude; return } }
         if let sv = surveyOf(vertex: id) { mutateSurvey(sv.id) { if let j = $0.pts.firstIndex(where: { $0.id == id }) { $0.pts[j].lat = c.latitude; $0.pts[j].lon = c.longitude } }; return }

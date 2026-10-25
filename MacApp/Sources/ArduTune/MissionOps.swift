@@ -65,7 +65,8 @@ struct MissionOps {
         m.selected = id
         var coord: CLLocationCoordinate2D?; var title = "Точка"; var kind = 0      // 0 маршрут, 1 вершина геозони, 2 Rally
         var alt: Double?
-        if let i = m.items.firstIndex(where: { $0.id == id }) {
+        if id == MissionStore.homeID, let h = m.home { coord = .init(latitude: h.lat, longitude: h.lon); title = "Home" }
+        else if let i = m.items.firstIndex(where: { $0.id == id }) {
             let it = m.items[i]; coord = it.coord; title = String(localized: "Точка \(i + 1): ") + it.def.name
             if it.hasPos, it.frame == 3, it.alt > 0 { alt = it.alt }
         } else if editable, let sv = m.surveyOf(vertex: id), let v = sv.pts.first(where: { $0.id == id }) { coord = v.coord; kind = 3; title = "Вершина ділянки" }

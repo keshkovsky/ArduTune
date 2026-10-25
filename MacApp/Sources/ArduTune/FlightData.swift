@@ -366,8 +366,7 @@ struct MapToolbar: View {
     /// Окрема плашка панелі (без розмиття: матеріал над картою мерехтить).
     private func pill<C: View>(@ViewBuilder _ c: () -> C) -> some View {
         c().font(.caption).padding(.horizontal, 10).padding(.vertical, 7)
-            .background(Color(nsColor: .windowBackgroundColor).opacity(0.94), in: RoundedRectangle(cornerRadius: 8))
-            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.quaternary))
+            .background(Color(nsColor: .windowBackgroundColor).opacity(0.58), in: RoundedRectangle(cornerRadius: 8))
             .blockMap()
     }
 

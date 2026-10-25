@@ -71,9 +71,8 @@ struct OptionalHardwareView: View {
     var body: some View {
         ConfigGate {
             PageTitle(title: String(localized: "Додаткове обладнання"), subtitle: String(localized: "Далекомір, камера, підвіс, оптичний потік і датчики перешкод. Показано лише те, що є в прошивці вашого польотника."))
-            Picker("", selection: $tab) {
-                Text("Далекомір").tag("rng"); Text("Камера").tag("cam"); Text("Підвіс").tag("mnt"); Text("VTX").tag("vtx"); Text("Оптичний потік").tag("flow"); Text("Перешкоди").tag("prx"); Text("Парашут").tag("chute"); Text("Захват").tag("grip"); Text("Антенний трекер").tag("trk")
-            }.pickerStyle(.segmented).labelsHidden()
+            TabStrip(selection: $tab, tabs: [("rng", "Далекомір"), ("cam", "Камера"), ("mnt", "Підвіс"), ("vtx", "VTX"), ("flow", "Оптичний потік"), ("prx", "Перешкоди"),
+                                              ("chute", "Парашут"), ("grip", "Захват"), ("trk", "Антенний трекер")])
             switch tab {
             case "cam": camera
             case "mnt": gimbal
@@ -814,6 +813,29 @@ struct DroneCANView: View {
             ForEach(rows) { r in
                 HStack { Text(lk(r.group + " \(r.slot)")).font(.callout); Spacer(); Text("вузол \(r.dronecanNode ?? 0)").font(.callout).foregroundStyle(.secondary) }
             }
+        }
+    }
+}
+
+/// Смуга вкладок, що прокручується по горизонталі: не розпирає вікно, коли вкладок багато.
+struct TabStrip: View {
+    @Binding var selection: String
+    let tabs: [(String, String)]
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 4) {
+                    ForEach(tabs, id: \.0) { t in
+                        Button { withAnimation(.snappy(duration: 0.15)) { selection = t.0 } } label: {
+                            Text(lk(t.1)).font(.callout).lineLimit(1).padding(.horizontal, 12).padding(.vertical, 5)
+                                .background(selection == t.0 ? Color.accentColor : Color.primary.opacity(0.06), in: Capsule())
+                                .foregroundStyle(selection == t.0 ? Color.white : Color.primary)
+                        }.buttonStyle(.plain).id(t.0)
+                    }
+                }.padding(.vertical, 2)
+            }
+            .onAppear { proxy.scrollTo(selection, anchor: .center) }
+            .onChange(of: selection) { _, v in withAnimation { proxy.scrollTo(v, anchor: .center) } }
         }
     }
 }

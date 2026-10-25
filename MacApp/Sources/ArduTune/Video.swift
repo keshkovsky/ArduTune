@@ -389,6 +389,7 @@ struct VideoWindow: View {
     @AppStorage("hud.ground") private var ground = ""
     @AppStorage("hud.ink") private var ink = ""
     @AppStorage("hud.accent") private var accent = ""
+    @AppStorage("vmap.on") private var mapOn = false
     @State private var showSettings = false
     @Environment(\.openWindow) private var openWindow
 
@@ -407,9 +408,18 @@ struct VideoWindow: View {
             .overlay {
                 if hudOn { HUDView(t: s.t, navSource: s.ps.navSource, alerts: [], config: config).opacity(opacity).allowsHitTesting(false) }
             }
+            .overlay(alignment: .topLeading) {
+                if mapOn { GeometryReader { g in MiniMapPanel(area: g.size).padding(10) } }
+            }
             .frame(minWidth: 480, minHeight: 300)
             .toolbar {
-                ToolbarItem { Button(lk(s.video.running ? "Stop" : "Start")) { s.video.running ? s.video.stopAll() : s.video.startGStreamer() } }
+                ToolbarItem {
+                    Button { s.video.running ? s.video.stopAll() : s.video.startGStreamer() } label: { Image(systemName: s.video.running ? "stop.fill" : "play.fill") }
+                        .help(lk(s.video.running ? "Зупинити відео" : "Запустити відео"))
+                }
+                ToolbarItem {
+                    Toggle(isOn: $mapOn) { Label("Мінікарта", systemImage: "map") }.toggleStyle(.button).help("Мінікарта з центром на апараті")
+                }
                 ToolbarItem {
                     Toggle(isOn: $hudOn) { Label("HUD", systemImage: "gauge.with.dots.needle.67percent") }.toggleStyle(.button).help("Дублювати HUD поверх відео")
                 }

@@ -3650,3 +3650,9 @@
 "3D, %lld сат." = "3D, %lld sat.";
 "Дані трекера: режим (Auto, Manual, Scan, Servo test), напрям на ціль і положення антени. Керування трекером буде додано пізніше." = "Tracker data: mode (Auto, Manual, Scan, Servo test), direction to the target and the antenna position. Tracker control will be added later.";
 "Підключіть плату з прошивкою AntennaTracker, і тут з'являться її режим, напрям на ціль, позиція та GPS. Налаштування трекера: Optional Hardware → Антенний трекер." = "Connect a board running AntennaTracker firmware and its mode, direction to the target, position and GPS will appear here. Tracker settings: Optional Hardware → Antenna tracker.";
+"Немає GPS-позиції" = "No GPS position";
+"Згорнути мінікарту" = "Collapse the mini map";
+"Розгорнути мінікарту" = "Expand the mini map";
+"Запустити відео" = "Start video";
+"Мінікарта" = "Mini map";
+"Мінікарта з центром на апараті" = "Mini map centered on the vehicle";

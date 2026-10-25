@@ -355,26 +355,35 @@ struct PlaceholderTab: View {
 
 struct MapToolbar: View {
     @Bindable var opt: MapOptions
+
+    /// Окрема плашка панелі (без розмиття: матеріал над картою мерехтить).
+    private func pill<C: View>(@ViewBuilder _ c: () -> C) -> some View {
+        c().font(.caption).padding(.horizontal, 10).padding(.vertical, 7)
+            .background(Color(nsColor: .windowBackgroundColor).opacity(0.94), in: RoundedRectangle(cornerRadius: 8))
+            .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.quaternary))
+            .blockMap()
+    }
+
     var body: some View {
-        HStack(spacing: 10) {
-            Toggle("Auto Pan", isOn: $opt.autoPan).toggleStyle(.checkbox).lineLimit(1).fixedSize()
-            Toggle("Fly to here (double-click)", isOn: $opt.flyHere).toggleStyle(.checkbox).lineLimit(1).fixedSize()
-            Toggle("Трек", isOn: $opt.showTrack).toggleStyle(.checkbox).lineLimit(1).fixedSize()
-            Menu {
-                ForEach(MapLayer.groups, id: \.0) { g in
-                    Section(lk(g.0)) { ForEach(g.1) { l in Button { opt.layer = l } label: { if opt.layer == l { Label(LocalizedStringKey(l.title), systemImage: "checkmark") } else { Text(LocalizedStringKey(l.title)) } } } }
-                }
-                Divider()
-                Toggle("Лінія фронту (DeepState)", isOn: $opt.front)
-                Toggle("Напрямки борту: компас · GPS · гіро", isOn: $opt.rays)
-                Toggle("Маршрут місії", isOn: $opt.showRoute)
-            } label: { Label(LocalizedStringKey(opt.layer.barTitle), systemImage: "square.3.layers.3d").lineLimit(1) }
-                .menuStyle(.borderlessButton).fixedSize()
+        HStack(spacing: 8) {
+            pill { Toggle("Auto Pan", isOn: $opt.autoPan).toggleStyle(.checkbox).lineLimit(1).fixedSize() }
+            pill { Toggle("Fly to here (double-click)", isOn: $opt.flyHere).toggleStyle(.checkbox).lineLimit(1).fixedSize() }
+            pill { Toggle("Трек", isOn: $opt.showTrack).toggleStyle(.checkbox).lineLimit(1).fixedSize() }
+            Spacer(minLength: 8)
+            pill {
+                Menu {
+                    ForEach(MapLayer.groups, id: \.0) { g in
+                        Section(lk(g.0)) { ForEach(g.1) { l in Button { opt.layer = l } label: { if opt.layer == l { Label(LocalizedStringKey(l.title), systemImage: "checkmark") } else { Text(LocalizedStringKey(l.title)) } } } }
+                    }
+                    Divider()
+                    Toggle("Лінія фронту (DeepState)", isOn: $opt.front)
+                    Toggle("Напрямки борту: компас · GPS · гіро", isOn: $opt.rays)
+                    Toggle("Маршрут місії", isOn: $opt.showRoute)
+                } label: { Label(LocalizedStringKey(opt.layer.barTitle), systemImage: "square.3.layers.3d").lineLimit(1) }
+                    .menuStyle(.borderlessButton).fixedSize()
+            }
         }
-        .font(.caption)
-        .padding(8)
-        .background(Color(nsColor: .windowBackgroundColor).opacity(0.94), in: RoundedRectangle(cornerRadius: 8))   // без розмиття: матеріал над картою мерехтить
-        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(.quaternary))
+        .frame(maxWidth: .infinity, alignment: .leading)
         .transaction { $0.animation = nil }
         .padding(8)
     }
@@ -405,7 +414,7 @@ struct MapPanel: View {
             vehicle: hasFix ? veh : nil, vehicleHeading: s.t.heading,
             rays: hasFix ? RayData.current(yaw: s.t.yaw, magHdg: s.t.magHdg, cog: s.t.cog, speed: s.t.groundSpeed, rays: opt.rays) : nil,
             rulerA: s.mission.ruler.a, rulerB: s.mission.ruler.b, rulerLabel: s.mission.ruler.result.map { RulerLayer.distanceText($0.distance) + "  ·  " + String(format: "%03.0f°", $0.trueAz) } ?? "",
-            home: s.t.homeSet ? .init(latitude: s.t.homeLat, longitude: s.t.homeLon) : nil,
+            home: s.t.homeSet ? .init(latitude: s.t.homeLat, longitude: s.t.homeLon) : s.mission.home.map { .init(latitude: $0.lat, longitude: $0.lon) },
             pois: s.poi.items, circles: circles,
             roiPoint: roi, roiLine: (roi != nil && hasFix) ? [veh, roi!] : [], roiPoly: (roi != nil && hasFix) ? footprint(from: veh, to: roi!) : [],
             front: opt.front ? front.polys : [], frontVersion: opt.front ? front.version : 0,
@@ -416,7 +425,7 @@ struct MapPanel: View {
             onPinContext: { id, v, e in MissionOps(s: s).pinMenu(id: id, view: v, event: e, editable: false, openInMission: { s.navigate = "Mission" }) },
             blocked: { [blockBox] in blockBox.rects })
         .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(alignment: .topLeading) { toolbar.blockMap() }
+        .overlay(alignment: .top) { toolbar }
         .overlay(alignment: .trailing) { MapControls(ctl: ctl).blockMap().padding(.trailing, 10) }
         .overlay(alignment: .top) {
             if let f = s.mission.following {

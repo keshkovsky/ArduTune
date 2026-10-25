@@ -335,9 +335,10 @@ final class MissionStore {
 
     // MARK: Копіювання / вставка
 
-    static func coordString(_ lat: Double, _ lon: Double) -> String { String(format: "%.7f, %.7f", lat, lon) }
+    static func coordString(_ lat: Double, _ lon: Double) -> String { Coords.pair(lat, lon, decimals: 7) }
     /// Розпізнає «широта, довгота» у довільному тексті (наприклад, скопійованому з карт).
     static func parseCoords(_ s: String) -> CLLocationCoordinate2D? {
+        if let m = Coords.parseMGRS(s) { return .init(latitude: m.0, longitude: m.1) }
         guard let re = try? NSRegularExpression(pattern: #"([-+]?\d{1,3}(?:\.\d+)?)\s*[,; ]\s*([-+]?\d{1,3}(?:\.\d+)?)"#),
               let m = re.firstMatch(in: s, range: NSRange(s.startIndex..., in: s)),
               let a = Range(m.range(at: 1), in: s), let b = Range(m.range(at: 2), in: s),

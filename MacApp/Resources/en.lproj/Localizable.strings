@@ -3540,10 +3540,6 @@
 "Зона %lld: " = "Zone %lld: ";
 "Конфігуратор ArduPilot для macOS · версія %@" = "ArduPilot configurator for macOS · version %@";
 "%@: %@ з %@" = "%@: %@ of %@";
-"Michael Oborne, GNU GPL v3: бібліотека протоколу з проєкту Mission Planner" = "Michael Oborne, GNU GPL v3: protocol library from the Mission Planner project";
-"ArduPilot Dev Team, GNU GPL v3: протокол, метадані параметрів, схеми моторів, таблиці датчиків і UART" = "ArduPilot Dev Team, GNU GPL v3: protocol, parameter metadata, motor layouts, sensor and UART tables";
-"LGPL: відео (окремий процес, встановлюється окремо)" = "LGPL: video (a separate process, installed separately)";
-"Microsoft, MIT: середовище виконання двигуна" = "Microsoft, MIT: runtime of the engine";
 "Quick tune" = "Quick tune";
 "Автоматичне налаштування PID скриптом VTOL-quicktune.lua: вмикається перемикачем на пульті (RCn_OPTION = QUIK_RC_FUNC, типово 300), перемикайте положення й тримайте апарат у повітрі, поки налаштування триває. Робіть це лише в безпечних умовах." = "Automatic PID tuning by the VTOL-quicktune.lua script: started with a transmitter switch (RCn_OPTION = QUIK_RC_FUNC, 300 by default); change the switch position and keep the vehicle in the air while the tune runs. Do this only in safe conditions.";
 "Параметрів Quick tune (QUIK_*) немає на польотнику. Вони з'являються, коли скрипт VTOL-quicktune.lua лежить у папці скриптів на SD-картці і скриптинг увімкнено (SCR_ENABLE = 1); після цього перезавантажте автопілот." = "The Quick tune parameters (QUIK_*) are not on the flight controller. They appear when the VTOL-quicktune.lua script is in the scripts folder on the SD card and scripting is enabled (SCR_ENABLE = 1); then reboot the autopilot.";
@@ -3582,7 +3578,6 @@
 "Тип пристрою, положення серво, мінімальна висота, затримка й критична швидкість падіння." = "Device type, servo positions, minimum altitude, delay and critical sink rate.";
 "Захват недоступний" = "Gripper unavailable";
 "У цій прошивці немає параметрів захвату (GRIP_*)." = "This firmware has no gripper parameters (GRIP_*).";
-"Захват (Gripper)" = "Gripper";
 "Серво- або електромагнітний захват для вантажу. Керується каналом пульта, командою або з місії." = "A servo or electromagnetic gripper for cargo. Controlled by a transmitter channel, a command or from a mission.";
 "Захват вимкнено (GRIP_ENABLE = 0). Увімкніть його й перезавантажте автопілот." = "The gripper is disabled (GRIP_ENABLE = 0). Enable it and reboot the autopilot.";
 "Захопити" = "Grab";
@@ -3594,3 +3589,6 @@
 "Для керування каналом пульта призначте йому функцію «Gripper» (RCx_OPTION = 19). У місії є команда «Захват» (DO_GRIPPER)." = "To control it with a transmitter channel, assign it the “Gripper” function (RCx_OPTION = 19). A mission has the “Gripper” command (DO_GRIPPER).";
 "Тип і положення серво" = "Type and servo positions";
 "Тип захвату та значення PWM для «захопити», «відпустити» й нейтралі." = "Gripper type and the PWM values for grab, release and neutral.";
+"Формат координат у Flight Data та Mission: десяткові градуси або MGRS (військова сітка, WGS84). Редактор точок і файли місій лишаються в градусах." = "Coordinate format in Flight Data and Mission: decimal degrees or MGRS (military grid, WGS84). The point editor and mission files stay in degrees.";
+"Градуси" = "Degrees";
+"%.0f м · " = "%.0f m · ";

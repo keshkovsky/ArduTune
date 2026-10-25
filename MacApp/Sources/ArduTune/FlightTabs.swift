@@ -268,7 +268,7 @@ struct PreFlightTab: View {
             Check(title: "GPS", ok: t.gpsFix >= 3 && t.sats >= 6, detail: t.gpsFix >= 3 ? String(localized: "fix \(t.gpsFix), \(t.sats) супутн.") : String(localized: "немає фіксу (\(t.sats) супутн.)")),
             Check(title: "HDOP", ok: t.hdop > 0 && t.hdop < 99 ? t.hdop < 2 : nil, detail: t.hdop > 0 && t.hdop < 99 ? String(format: "%.1f", t.hdop) : "невідомо"),
             Check(title: "EKF", ok: (t.ekfFlags & 7) == 7, detail: "flags 0x\(String(t.ekfFlags, radix: 16))"),
-            Check(title: String(localized: "Home встановлено"), ok: t.homeSet, detail: t.homeSet ? String(format: "%.5f, %.5f", t.homeLat, t.homeLon) : "очікує GPS"),
+            Check(title: String(localized: "Home встановлено"), ok: t.homeSet, detail: t.homeSet ? Coords.pair(t.homeLat, t.homeLon, decimals: 5) : "очікує GPS"),
             Check(title: String(localized: "Батарея"), ok: battOK, detail: String(format: "%.2f V, %d%%", t.batteryV, t.batteryPct)),
             Check(title: String(localized: "Вібрації"), ok: vib < 30, detail: String(format: "x %.1f  y %.1f  z %.1f", t.vibeX, t.vibeY, t.vibeZ)),
             Check(title: String(localized: "Сигнал приймача (RSSI)"), ok: t.rssi > 0, detail: t.rssi > 0 ? String(format: "%.0f", t.rssi) : "немає сигналу"),

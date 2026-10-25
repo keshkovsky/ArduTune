@@ -450,7 +450,7 @@ struct MapPanel: View {
 
     var bottomBar: some View {
         HStack(spacing: 14) {
-            Text(String(format: "%.7f  %.7f", s.t.lat, s.t.lon)).font(.system(.caption, design: .monospaced))
+            Text(Coords.pair(s.t.lat, s.t.lon, decimals: 7, sep: "  ")).font(.system(.caption, design: .monospaced))
             Text(String(format: loc("%.1f м"), s.t.altRel)).font(.system(.caption, design: .monospaced))
             if let n = note { Text(LocalizedStringKey(n)).font(.caption).foregroundStyle(.orange).lineLimit(1) }
             Spacer()
@@ -463,7 +463,7 @@ struct MapPanel: View {
 
     func centerOnVehicle() { if s.t.gpsFix >= 3 { ctl.center(.init(latitude: s.t.lat, longitude: s.t.lon), distance: 500) } }
     var defaultAlt: Double { s.t.altRel > 2 ? s.t.altRel : 10 }
-    func fmt(_ c: CLLocationCoordinate2D) -> String { String(format: "%.6f, %.6f", c.latitude, c.longitude) }
+    func fmt(_ c: CLLocationCoordinate2D) -> String { Coords.pair(c.latitude, c.longitude) }
     func post(_ path: String, _ msg: String) { EngineAPI.post(path) { ok, _ in note = ok ? msg : "Помилка команди" } }
 
     /// Приблизна область, яку бачить камера: трапеція навколо точки ROI за висотою, відстанню та полем зору.
@@ -496,7 +496,7 @@ struct MapPanel: View {
     }
 
     func askCoords(_ title: String, withAlt: Bool) -> (CLLocationCoordinate2D, Double)? {
-        var fields = [(label: "Широта, довгота", value: s.t.gpsFix >= 3 ? String(format: "%.6f, %.6f", s.t.lat, s.t.lon) : "")]
+        var fields = [(label: "Широта, довгота", value: s.t.gpsFix >= 3 ? Coords.pair(s.t.lat, s.t.lon) : "")]
         if withAlt { fields.append((label: "Висота, м", value: String(Int(defaultAlt)))) }
         guard let r = Prompt.ask(title, message: String(localized: "Формат: 50.450100, 30.523400"), fields: fields) else { return nil }
         let parts = r[0].replacingOccurrences(of: ";", with: ",").split(separator: ",").compactMap { Prompt.number(String($0)) }

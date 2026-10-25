@@ -675,7 +675,7 @@ struct RallyPanel: View {
         let sel = m.selected == r.id
         return HStack(spacing: 8) {
             Text("R\(i + 1)").font(.caption.weight(.bold)).frame(width: 28, height: 22).background(Color.teal, in: Capsule()).foregroundStyle(.white)
-            Text(String(format: "%.5f, %.5f", r.lat, r.lon)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+            Text(Coords.pair(r.lat, r.lon, decimals: 5)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             Spacer()
             TextField("", value: Binding(get: { m.rally.first { $0.id == r.id }?.alt ?? 0 }, set: { v in if let k = m.rally.firstIndex(where: { $0.id == r.id }) { m.rally[k].alt = v } }), format: .number)
                 .textFieldStyle(.roundedBorder).frame(width: 56).multilineTextAlignment(.trailing)
@@ -812,7 +812,7 @@ struct MissionRow: View {
                 .frame(width: 18, height: 18).background(Color(nsColor: MissionCatalog.badge(it.cmd).1), in: Circle())
             VStack(alignment: .leading, spacing: 0) {
                 Text(LocalizedStringKey(it.def.name)).font(.callout).lineLimit(1)
-                if it.def.loc { Text(lk(it.hasPos ? String(format: loc("%.0f м · %.5f, %.5f"), it.alt, it.lat, it.lon) : "без координат")).font(.caption2).foregroundStyle(it.hasPos ? Color.secondary : Color.orange) }
+                if it.def.loc { Text(lk(it.hasPos ? String(format: loc("%.0f м · "), it.alt) + Coords.pair(it.lat, it.lon, decimals: 5) : "без координат")).font(.caption2).foregroundStyle(it.hasPos ? Color.secondary : Color.orange) }
                 else if let l = it.def.params.first, let l { Text("\(l): \(it.p1.formatted())").font(.caption2).foregroundStyle(.secondary) }
             }
             Spacer(minLength: 0)
@@ -857,6 +857,9 @@ struct MissionItemEditor: View {
                     }
                     if it.def.loc {
                         HStack { field("Широта", num(\.lat)); field("Довгота", num(\.lon)) }
+                        if Coords.isMGRS, it.hasPos {
+                            MGRSEditField(lat: it.lat, lon: it.lon) { la, lo in m.update(id) { $0.lat = la; $0.lon = lo } }.id("\(it.lat),\(it.lon)")
+                        }
                         HStack(alignment: .bottom) {
                             field("Висота, м", num(\.alt))
                             VStack(alignment: .leading, spacing: 2) {
@@ -885,5 +888,24 @@ struct MissionItemEditor: View {
             Text(LocalizedStringKey(title)).font(.caption2).foregroundStyle(.secondary)
             TextField("", value: b, format: .number.precision(.fractionLength(0...7))).textFieldStyle(.roundedBorder).multilineTextAlignment(.leading)
         }
+    }
+}
+
+/// Поле MGRS у редакторі точки (показується, коли в Налаштуваннях обрано формат MGRS): Return застосовує введене.
+struct MGRSEditField: View {
+    let lat: Double, lon: Double
+    let apply: (Double, Double) -> Void
+    @State private var text = ""
+    @State private var bad = false
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("MGRS").font(.caption2).foregroundStyle(.secondary)
+            TextField("", text: $text).textFieldStyle(.roundedBorder).font(.system(.callout, design: .monospaced))
+                .overlay(RoundedRectangle(cornerRadius: 5).stroke(bad ? Color.red : .clear))
+                .onSubmit {
+                    if let p = Coords.parseMGRS(text) { bad = false; apply(p.0, p.1) } else { bad = true }
+                }
+        }
+        .onAppear { text = Coords.mgrs(lat, lon) ?? "" }
     }
 }

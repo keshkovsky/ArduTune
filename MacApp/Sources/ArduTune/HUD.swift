@@ -89,8 +89,8 @@ struct HUDView: View {
             case "vibemax": return String(format: "Vibe: %.1f", max(t.vibeX, t.vibeY, t.vibeZ))
             case "heading": return String(format: "Heading: %.0f", t.heading)
             case "groundspeed": return "GroundSpeed: " + Units.speedNum(t.groundSpeed) + (Units.speedKey == "ms" ? "" : " " + Units.speedLabel(en: true))
-            case "lat": return String(format: "Lat: %.6f", t.lat)
-            case "lng": return String(format: "Lng: %.6f", t.lon)
+            case "lat": return Coords.isMGRS ? "MGRS: " + (Coords.mgrs(t.lat, t.lon) ?? "—") : String(format: "Lat: %.6f", t.lat)
+            case "lng": return Coords.isMGRS ? "" : String(format: "Lng: %.6f", t.lon)
             case "battv": return String(format: "Battery V: %.2f", t.batteryV)
             case "battcurr": return String(format: "Current: %.1f", t.batteryA)
             case "battpct": return "Battery: \(t.batteryPct)%"

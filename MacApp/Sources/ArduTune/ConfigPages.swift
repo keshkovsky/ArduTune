@@ -173,7 +173,7 @@ struct GPSNavView: View {
                 stat("HDOP", t.hdop > 99 ? "—" : String(format: "%.2f", t.hdop), t.hdop > 0 && t.hdop < 1.5 ? .green : .orange)
                 stat("Висота MSL", String(format: loc("%.1f м"), t.altMsl), .primary)
                 stat("Швидкість", String(format: loc("%.1f м/с"), t.groundSpeed), .primary)
-                if t.gpsFix >= 2 { stat("Координати", String(format: "%.6f, %.6f", t.lat, t.lon), .primary) }
+                if t.gpsFix >= 2 { stat("Координати", Coords.pair(t.lat, t.lon), .primary) }
                 Spacer()
             }
         }

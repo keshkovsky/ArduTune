@@ -157,6 +157,7 @@ struct SettingsView: View {
     @AppStorage("units.dist") private var uDist = "m"
     @AppStorage("units.alt") private var uAlt = "m"
     @AppStorage("units.speed") private var uSpeed = "ms"
+    @AppStorage("units.coord") private var uCoord = "deg"
     var unitsCard: some View {
         Card(title: String(localized: "Одиниці виміру"), icon: "ruler", text: String(localized: "Як показуються відстані, висота й швидкість у HUD, Flight Data, Mission (телеметрія, симуляція, 3D), лінійці й підсумках. Параметри польотника, редактор точок місії й сторінки налаштувань лишаються в метрах і м/с, як у Mission Planner.")) {
             row("Відстань", "Відстань до точки, до дому, довжина маршруту, лінійка. Великі значення показуються в км або милях.") {
@@ -171,6 +172,10 @@ struct SettingsView: View {
                 Picker("", selection: $uSpeed) {
                     Text("м/с").tag("ms"); Text("км/год").tag("kmh"); Text("миль/год").tag("mph"); Text("вузли").tag("kn")
                 }.pickerStyle(.segmented).labelsHidden().frame(width: 300)
+            }
+            Divider().opacity(0.4)
+            row("Координати", "Формат координат у Flight Data та Mission: десяткові градуси або MGRS (військова сітка, WGS84). Редактор точок і файли місій лишаються в градусах.") {
+                Picker("", selection: $uCoord) { Text("Градуси").tag("deg"); Text("MGRS").tag("mgrs") }.pickerStyle(.segmented).labelsHidden().frame(width: 200)
             }
             Divider().opacity(0.4)
             HStack(spacing: 10) {

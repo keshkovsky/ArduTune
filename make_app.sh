@@ -27,6 +27,7 @@ cat > "$APP/Contents/Info.plist" <<PL
 <key>CFBundleVersion</key><string>$BUILD</string>
 <key>CFBundleShortVersionString</key><string>$VERSION</string>
 <key>NSHumanReadableCopyright</key><string>© 2026 keshkovsky. GNU GPL v3.</string>
+<key>NSLocationWhenInUseUsageDescription</key><string>ArduTune використовує положення Mac як позицію станції для наведення антени.</string>
 <key>NSCameraUsageDescription</key><string>ArduTune показує відео з камери для польотів.</string>
 <key>LSMinimumSystemVersion</key><string>15.0</string>
 <key>NSHighResolutionCapable</key><true/>

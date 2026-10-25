@@ -283,6 +283,8 @@ struct FlightMap: NSViewRepresentable {
     var rulerB: CLLocationCoordinate2D? = nil
     var rulerLabel = ""
     let home: CLLocationCoordinate2D?
+    var station: CLLocationCoordinate2D? = nil      // станція (антена): позиція для лінії наведення
+    var aimText = ""
     let pois: [POI]
     let circles: [(CLLocationCoordinate2D, Double)]
     let roiPoint: CLLocationCoordinate2D?
@@ -333,6 +335,7 @@ struct FlightMap: NSViewRepresentable {
         var dynOv: [MKOverlay] = [], dynSig = ""
         var frontOv: [MKOverlay] = [], frontVer = -1
         var veh: MapPin?, vehRot = -999, home: MapPin?, roi: MapPin?
+        var aimOv: MKPolyline?, stationPin: MapPin?, aimPin: MapPin?, aimSig = "", aimAt = Date.distantPast
         // промені напрямку борту (компас · GPS · гіроскоп)
         var raysPin: MapPin?, raysKey = "", raysData: RayData?
         let rulerLayer = RulerLayer()
@@ -426,6 +429,38 @@ struct FlightMap: NSViewRepresentable {
             vehHeading = p.vehicleHeading
             syncRays(m, vehicle: p.vehicle, rays: p.rays)
             rulerLayer.sync(m, a: p.rulerA, b: p.rulerB, label: p.rulerLabel)
+            syncAim(m, p)
+        }
+        /// Лінія від станції (антени) до апарата з підписом азимута, кута місця й відстані; оновлюється не частіше ~3 разів на секунду.
+        func syncAim(_ m: MKMapView, _ p: FlightMap) {
+            guard let st = p.station, let v = p.vehicle else {
+                if let o = aimOv { m.removeOverlay(o); aimOv = nil }
+                if let a = stationPin { m.removeAnnotation(a); stationPin = nil }
+                if let a = aimPin { m.removeAnnotation(a); aimPin = nil }
+                aimSig = ""; return
+            }
+            let sig = String(format: "%.5f,%.5f>%.5f,%.5f|%@", st.latitude, st.longitude, v.latitude, v.longitude, p.aimText)
+            guard sig != aimSig, Date().timeIntervalSince(aimAt) > 0.33 else { return }
+            aimSig = sig; aimAt = Date()
+            if let o = aimOv { m.removeOverlay(o) }
+            let l = MKPolyline(coordinates: [st, v], count: 2); l.title = "aim"; aimOv = l; m.addOverlay(l, level: .aboveLabels)
+            pin(&stationPin, kind: "station", at: st, title: String(localized: "Станція"), in: m)
+            let mid = CLLocationCoordinate2D(latitude: (st.latitude + v.latitude) / 2, longitude: (st.longitude + v.longitude) / 2)
+            if aimPin == nil { let a = MapPin(); a.kind = "aimlabel"; a.coordinate = mid; a.title = p.aimText; aimPin = a; m.addAnnotation(a) }
+            else if let a = aimPin {
+                a.coordinate = mid
+                if a.title != p.aimText { a.title = p.aimText; if let av = m.view(for: a) { av.image = Self.textPill(p.aimText) } }
+            }
+        }
+        static func textPill(_ text: String) -> NSImage {
+            let attrs: [NSAttributedString.Key: Any] = [.font: NSFont.monospacedSystemFont(ofSize: 11, weight: .semibold), .foregroundColor: NSColor.white]
+            let s = (text as NSString).size(withAttributes: attrs)
+            return NSImage(size: NSSize(width: s.width + 16, height: s.height + 8), flipped: false) { r in
+                NSColor.black.withAlphaComponent(0.62).setFill()
+                NSBezierPath(roundedRect: r, xRadius: r.height / 2, yRadius: r.height / 2).fill()
+                (text as NSString).draw(at: NSPoint(x: 8, y: 4), withAttributes: attrs)
+                return true
+            }
         }
         var vehHeading = 0.0
         var curRoute: UUID?
@@ -482,6 +517,8 @@ struct FlightMap: NSViewRepresentable {
                 v.zPriority = MKAnnotationViewZPriority(rawValue: 900)
                 v.image = HeadingRays.image(raysData ?? RayData(), mapHeading: m.camera.heading)
                 raysKey = ""
+            case "station": v.image = Self.badge("antenna.radiowaves.left.and.right", fg: .white, bg: .systemTeal, size: 28); v.canShowCallout = true
+            case "aimlabel": v.canShowCallout = false; v.isEnabled = false; v.image = Self.textPill(a.title ?? ""); v.zPriority = MKAnnotationViewZPriority(rawValue: 800)
             case "home": v.image = Self.badge("house.fill", fg: .white, bg: .systemGreen, size: 28); v.canShowCallout = true
             case "roi": v.image = Self.badge("camera.viewfinder", fg: .black, bg: .systemYellow, size: 28); v.canShowCallout = true
             default: v.image = Self.badge("mappin", fg: .white, bg: .systemRed, size: 28); v.canShowCallout = true
@@ -499,6 +536,7 @@ struct FlightMap: NSViewRepresentable {
                     return r
                 }
                 if l.title == "ruler" { r.strokeColor = .white; r.lineWidth = 2.5; r.lineDashPattern = [8, 5]; r.lineCap = .round; return r }
+                if l.title == "aim" { r.strokeColor = .systemTeal; r.lineWidth = 2; r.lineDashPattern = [7, 5] }
                 if l.title == "roiLine" { r.strokeColor = .systemYellow; r.lineWidth = 2; r.lineDashPattern = [6, 4] }
                 else { r.strokeColor = .systemPurple; r.lineWidth = 3 }
                 return r

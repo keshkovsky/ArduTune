@@ -49,6 +49,8 @@ class Telemetry
     public double navRoll { get; set; }
     public double navPitch { get; set; }
     public double wpDist { get; set; }
+    public double navBearing { get; set; }
+    public double targetBearing { get; set; }
     public int wpSeq { get; set; }
     public int wpTotal { get; set; }
     public int wpReached { get; set; } = -1;
@@ -850,7 +852,7 @@ partial class Link
                     var vb = (mavlink_vibration_t)m.data; T.vibeX = vb.vibration_x; T.vibeY = vb.vibration_y; T.vibeZ = vb.vibration_z; T.vibeClip0 = vb.clipping_0; T.vibeClip1 = vb.clipping_1; T.vibeClip2 = vb.clipping_2;
                     break;
                 case MAVLINK_MSG_ID.NAV_CONTROLLER_OUTPUT:
-                    var nc = (mavlink_nav_controller_output_t)m.data; T.navRoll = nc.nav_roll; T.navPitch = nc.nav_pitch; T.wpDist = nc.wp_dist;
+                    var nc = (mavlink_nav_controller_output_t)m.data; T.navRoll = nc.nav_roll; T.navPitch = nc.nav_pitch; T.wpDist = nc.wp_dist; T.navBearing = nc.nav_bearing; T.targetBearing = nc.target_bearing;
                     break;
                 case MAVLINK_MSG_ID.MISSION_CURRENT:
                     var mcur = (mavlink_mission_current_t)m.data; T.wpSeq = mcur.seq; T.wpTotal = mcur.total;

@@ -3,7 +3,7 @@ import MapKit
 
 enum FDTab: String, CaseIterable, Identifiable {
     case dashboard = "Dashboard", actions = "Actions", messages = "Messages", params = "Params", video = "Video"
-    case preflight = "PreFlight", status = "Status", servo = "Servo/Relay", aux = "Aux Function", scripts = "Scripts", inspector = "MAVLink Inspector", ekf = "EKF", vibe = "Vibration"
+    case preflight = "PreFlight", status = "Status", servo = "Servo/Relay", aux = "Aux Function", scripts = "Scripts", inspector = "MAVLink Inspector", ekf = "EKF", vibe = "Vibration", tracker = "Tracker"
     var id: String { rawValue }
 }
 
@@ -24,6 +24,7 @@ struct FlightView: View {
     @AppStorage("hud.accent") private var hudAccent = ""
     @AppStorage("fd.tabs.inspector") private var inspectorAdded = false
     @AppStorage("fd.tabs.ekfvibe") private var ekfVibeAdded = false
+    @AppStorage("fd.tabs.tracker") private var trackerAdded = false
     @AppStorage("fd.tabs") private var tabsCSV = FDTab.allCases.map(\.rawValue).joined(separator: ",")
     @AppStorage("hud.aspect") private var hudAspect = "auto"
     @AppStorage("hud.swap") private var hudSwap = false
@@ -105,6 +106,10 @@ struct FlightView: View {
         .environment(fs)
         .onAppear {
             fs.startLog()
+            if !trackerAdded {
+                trackerAdded = true
+                if !tabsCSV.contains(FDTab.tracker.rawValue) { tabsCSV += "," + FDTab.tracker.rawValue }
+            }
             if !ekfVibeAdded {
                 ekfVibeAdded = true
                 for t in [FDTab.ekf, FDTab.vibe] where !tabsCSV.contains(t.rawValue) { tabsCSV += "," + t.rawValue }
@@ -297,6 +302,7 @@ struct FlightView: View {
         case .inspector: MavInspectorTab()
         case .ekf: EKFPanel()
         case .vibe: VibrationPanel()
+        case .tracker: TrackerPanel()
         }
     }
 }
@@ -320,6 +326,7 @@ struct FDTabWindow: View {
             case .inspector: MavInspectorTab()
             case .ekf: EKFPanel()
             case .vibe: VibrationPanel()
+            case .tracker: TrackerPanel()
             }
         }
         .frame(minWidth: 520, minHeight: 320)
@@ -379,6 +386,13 @@ struct MapToolbar: View {
                     Toggle("Лінія фронту (DeepState)", isOn: $opt.front)
                     Toggle("Напрямки борту: компас · GPS · гіро", isOn: $opt.rays)
                     Toggle("Маршрут місії", isOn: $opt.showRoute)
+                    Divider()
+                    Toggle("Лінія наведення антени", isOn: Binding(get: { StationStore.shared.aimLine }, set: { StationStore.shared.aimLine = $0 }))
+                    Menu("Позиція станції") {
+                        Picker("", selection: Binding(get: { StationStore.shared.source }, set: { StationStore.shared.source = $0 })) {
+                            Text("Home апарата").tag("home"); Text("Цей Mac (геолокація)").tag("mac"); Text("Задана вручну").tag("manual")
+                        }.pickerStyle(.inline).labelsHidden()
+                    }
                 } label: { Label(LocalizedStringKey(opt.layer.barTitle), systemImage: "square.3.layers.3d").lineLimit(1) }
                     .menuStyle(.borderlessButton).fixedSize()
             }
@@ -407,6 +421,10 @@ struct MapPanel: View {
         let veh = CLLocationCoordinate2D(latitude: s.t.lat, longitude: s.t.lon)
         let mis = s.mission
         let routePins: [FlightMap.RoutePin] = opt.showRoute ? mis.items.enumerated().compactMap { i, it in it.hasPos ? FlightMap.RoutePin(id: it.id, lat: it.lat, lon: it.lon, label: String(i + 1), cmd: it.cmd) : nil } : []
+        let homeC: CLLocationCoordinate2D? = s.t.homeSet ? .init(latitude: s.t.homeLat, longitude: s.t.homeLon) : s.mission.home.map { .init(latitude: $0.lat, longitude: $0.lon) }
+        let stationStore = StationStore.shared
+        let aimStation: CLLocationCoordinate2D? = (stationStore.aimLine && hasFix && s.t.vehicle != "ANTENNA_TRACKER") ? stationStore.coordinate(home: homeC) : nil
+        let aimText: String = aimStation.map { Aim.text(Aim.compute(from: $0, to: veh, height: s.t.altRel)) } ?? ""
         let curSeq = s.t.wpSeq
         let routeCur: UUID? = (opt.showRoute && s.connected && !mis.dirty && curSeq >= 1 && curSeq <= mis.items.count) ? mis.items[curSeq - 1].id : nil
         FlightMap(
@@ -415,6 +433,7 @@ struct MapPanel: View {
             rays: hasFix ? RayData.current(yaw: s.t.yaw, magHdg: s.t.magHdg, cog: s.t.cog, speed: s.t.groundSpeed, rays: opt.rays) : nil,
             rulerA: s.mission.ruler.a, rulerB: s.mission.ruler.b, rulerLabel: s.mission.ruler.result.map { RulerLayer.distanceText($0.distance) + "  ·  " + String(format: "%03.0f°", $0.trueAz) } ?? "",
             home: s.t.homeSet ? .init(latitude: s.t.homeLat, longitude: s.t.homeLon) : s.mission.home.map { .init(latitude: $0.lat, longitude: $0.lon) },
+            station: aimStation, aimText: aimText,
             pois: s.poi.items, circles: circles,
             roiPoint: roi, roiLine: (roi != nil && hasFix) ? [veh, roi!] : [], roiPoly: (roi != nil && hasFix) ? footprint(from: veh, to: roi!) : [],
             front: opt.front ? front.polys : [], frontVersion: opt.front ? front.version : 0,
@@ -528,6 +547,7 @@ struct MapPanel: View {
         if s.mission.ruler.capturesClick { s.mission.ruler.place(c); return }
         let mb = MenuBuilder()
         mb.item("Виміряти відстань до…") { s.mission.ruler.start(at: c) }
+        mb.item("Поставити станцію антени тут", symbol: "antenna.radiowaves.left.and.right") { StationStore.shared.setManual(c) }
         mb.separator()
         mb.item("Fly To Here") { flyTo(c, alt: nil) }
         mb.item("Fly To Here Alt") {

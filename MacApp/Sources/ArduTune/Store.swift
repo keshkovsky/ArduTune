@@ -16,7 +16,7 @@ struct Telemetry: Decodable {
     var lastText: String? = nil
     var msgRate = 0.0
     var customMode = 0
-    var altMsl = 0.0, throttle = 0.0, navRoll = 0.0, navPitch = 0.0, wpDist = 0.0
+    var altMsl = 0.0, throttle = 0.0, navRoll = 0.0, navPitch = 0.0, wpDist = 0.0, navBearing = 0.0, targetBearing = 0.0
     var wpSeq = 0, wpTotal = 0, wpReached = -1
     var vibeX = 0.0, vibeY = 0.0, vibeZ = 0.0, hdop = 0.0, rssi = 0.0, mahUsed = 0.0
     var homeLat = 0.0, homeLon = 0.0, homeSet = false

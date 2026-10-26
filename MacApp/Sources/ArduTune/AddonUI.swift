@@ -13,7 +13,7 @@ final class AddonNode {
     func bool(_ k: String) -> Bool { (p[k] as? NSNumber)?.boolValue ?? false }
 
     static let handlerKeys = ["onClick", "onChange", "onSubmit"]
-    static let propKeys = ["text", "label", "title", "icon", "value", "min", "max", "step", "style", "color", "disabled", "prominent", "spacing", "warn", "bad", "format", "placeholder", "width", "caption", "options", "tint"]
+    static let propKeys = ["text", "label", "title", "icon", "value", "min", "max", "step", "style", "color", "disabled", "prominent", "spacing", "warn", "bad", "format", "placeholder", "width", "caption", "options", "tint", "key"]
 
     static func parse(_ v: JSValue?, depth: Int = 0) -> AddonNode? {
         guard let v, v.isObject, depth < 24 else { return nil }
@@ -34,6 +34,50 @@ final class AddonNode {
     }
 }
 
+/// Гарячі клавіші сторінки розширення: кнопка з `key` ("up", "down", "left", "right", "return", "delete", "space", "escape" або літера) спрацьовує від клавіатури, поки сторінка видима й фокус не в текстовому полі.
+enum AddonKeys {
+    static func glyph(_ k: String) -> String {
+        ["up": "↑", "down": "↓", "left": "←", "right": "→", "return": "↩", "delete": "⌫", "space": "␣", "escape": "⎋"][k] ?? k.uppercased()
+    }
+    static func name(_ e: NSEvent) -> String? {
+        switch e.keyCode {
+        case 126: return "up"; case 125: return "down"; case 123: return "left"; case 124: return "right"
+        case 36, 76: return "return"; case 51, 117: return "delete"; case 49: return "space"; case 53: return "escape"
+        default: return e.charactersIgnoringModifiers?.lowercased()
+        }
+    }
+    static func buttons(_ n: AddonNode?) -> [String: AddonNode] {
+        var out: [String: AddonNode] = [:]
+        func walk(_ x: AddonNode) {
+            if x.type == "button", let k = x.str("key"), !x.bool("disabled"), x.handlers["onClick"] != nil, out[k] == nil { out[k] = x }
+            x.children.forEach(walk)
+        }
+        if let n { walk(n) }
+        return out
+    }
+}
+
+struct AddonKeyCatcher: NSViewRepresentable {
+    let onKey: (NSEvent) -> Bool
+    final class V: NSView {
+        var onKey: ((NSEvent) -> Bool)?
+        var monitor: Any?
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            if let m = monitor { NSEvent.removeMonitor(m); monitor = nil }
+            guard window != nil else { return }
+            monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] e in
+                guard let self, let w = self.window, e.window === w, w.isKeyWindow, !(w.firstResponder is NSText) else { return e }
+                if !e.modifierFlags.intersection([.command, .option, .control, .shift]).isEmpty { return e }
+                return (self.onKey?(e) ?? false) ? nil : e
+            }
+        }
+        deinit { if let m = monitor { NSEvent.removeMonitor(m) } }
+    }
+    func makeNSView(context: Context) -> V { let v = V(); v.onKey = onKey; return v }
+    func updateNSView(_ v: V, context: Context) { v.onKey = onKey }
+}
+
 /// Сторінка розширення: періодично викликає render() і малює результат.
 struct AddonPageView: View {
     let addonID: String
@@ -50,6 +94,13 @@ struct AddonPageView: View {
                 ContentUnavailableView("Сторінка розширення недоступна", systemImage: "puzzlepiece", description: Text("Розширення вимкнене або не зареєструвало цю сторінку."))
             }
         }
+        .background(AddonKeyCatcher { e in
+            guard let k = AddonKeys.name(e), let n = AddonKeys.buttons(root)[k], let h = n.handlers["onClick"] else { return false }
+            if e.isARepeat && !["up", "down", "left", "right"].contains(k) { return true }     // повтор клавіші не повторює дію
+            _ = h.call(withArguments: [])
+            refresh()
+            return true
+        })
         .onAppear { refresh() }
         .task(id: "\(addonID)/\(pageID)") {
             while !Task.isCancelled { refresh(); try? await Task.sleep(nanoseconds: 300_000_000) }
@@ -124,9 +175,13 @@ struct AddonNodeView: View {
             .foregroundStyle(color(node.str("color")) ?? .primary)
             .fixedSize(horizontal: false, vertical: true)
         case "button":
+            let hint = node.str("key").map { AddonKeys.glyph($0) }
+            let lab = node.str("label") ?? ""
             Button { call("onClick") } label: {
-                if let ic = node.str("icon") { Label { Text(lk(node.str("label") ?? "")) } icon: { Image(systemName: ic) } } else { Text(lk(node.str("label") ?? "")) }
+                let text = lab.isEmpty ? Text(verbatim: "") : (hint != nil ? Text(lk(lab)) + Text(verbatim: "  " + hint!).foregroundStyle(.secondary) : Text(lk(lab)))
+                if let ic = node.str("icon") { Label { text } icon: { Image(systemName: ic) } } else { text }
             }
+            .help(hint.map { "⌨ " + $0 } ?? "")
             .disabled(node.bool("disabled"))
             .buttonStyle(.bordered).tint(node.bool("prominent") ? .accentColor : color(node.str("tint")))
             .frame(width: node.num("width").map { CGFloat($0) })

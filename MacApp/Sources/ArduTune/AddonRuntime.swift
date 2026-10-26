@@ -2,6 +2,7 @@ import Foundation
 import JavaScriptCore
 import Darwin
 import CoreLocation
+import Network
 
 /// Послідовний порт для розширень (USB-UART): читання йде на головному потоці й віддається в JS як масив байтів.
 final class AddonSerial {
@@ -44,6 +45,55 @@ final class AddonSerial {
     func close() { source?.cancel(); source = nil; fd = -1 }
 }
 
+/// TCP/UDP-з'єднання для розширень (RNDIS/Ethernet-пристрої). Лише приватні адреси локальної мережі.
+final class AddonNet {
+    private let conn: NWConnection
+    private(set) var isOpen = false
+    private var closed = false
+    var onOpen: (() -> Void)?
+    var onData: ((Data) -> Void)?
+    var onClose: (() -> Void)?
+
+    /// Приватні IPv4: 10/8, 172.16/12, 192.168/16, link-local 169.254/16.
+    static func isLAN(_ host: String) -> Bool {
+        let o = host.split(separator: ".").compactMap { Int($0) }
+        guard o.count == 4, o.allSatisfy({ (0...255).contains($0) }) else { return false }
+        return o[0] == 10 || (o[0] == 172 && (16...31).contains(o[1])) || (o[0] == 192 && o[1] == 168) || (o[0] == 169 && o[1] == 254)
+    }
+
+    init?(host: String, port: Int, udp: Bool) {
+        guard AddonNet.isLAN(host), (1...65535).contains(port), let p = NWEndpoint.Port(rawValue: UInt16(port)) else { return nil }
+        conn = NWConnection(host: NWEndpoint.Host(host), port: p, using: udp ? .udp : .tcp)
+        conn.stateUpdateHandler = { [weak self] st in
+            guard let self else { return }
+            switch st {
+            case .ready: self.isOpen = true; self.onOpen?(); self.receive()
+            case .failed, .cancelled: self.finish()
+            default: break
+            }
+        }
+        conn.start(queue: .main)
+    }
+    private func receive() {
+        conn.receive(minimumIncompleteLength: 1, maximumLength: 4096) { [weak self] d, _, _, err in
+            guard let self, !self.closed else { return }
+            if let d, !d.isEmpty { self.onData?(d) }
+            if err != nil { self.finish() } else { self.receive() }
+        }
+    }
+    private func finish() {
+        guard !closed else { return }
+        closed = true; isOpen = false
+        onClose?()
+    }
+    func write(_ bytes: [UInt8]) -> Bool {
+        guard isOpen, !closed else { return false }
+        conn.send(content: Data(bytes), completion: .contentProcessed { _ in })
+        return true
+    }
+    func close() { closed = true; isOpen = false; conn.cancel() }
+}
+
 /// Виконує скрипт одного розширення й надає йому API `ardutune`.
 @MainActor
 final class AddonRuntime {
@@ -54,6 +104,7 @@ final class AddonRuntime {
     private var nextTimer = 1
     private var ports: [Int: AddonSerial] = [:]
     private var nextPort = 1
+    private var nets: [Int: AddonNet] = [:]
     private var listeners: [String: [JSValue]] = [:]
     private var lastConnected: Bool?
     private var running = false
@@ -98,6 +149,8 @@ final class AddonRuntime {
         timers = [:]
         for (_, p) in ports { p.onData = nil; p.onClose = nil; p.close() }
         ports = [:]
+        for (_, n) in nets { n.onOpen = nil; n.onData = nil; n.onClose = nil; n.close() }
+        nets = [:]
         listeners = [:]
         ctx = nil
     }
@@ -215,6 +268,15 @@ final class AddonRuntime {
             return self.openPort(path, baud: baud == 0 ? 115200 : baud)
         }
 
+        // мережа (TCP/UDP, лише локальна мережа)
+        let net = ns(api, "net")
+        def(net, "open") { [weak self] a in
+            guard let self, self.need("net"), let o = a.first, let host = o.forProperty("host")?.toString() else { return nil }
+            let port = Int(o.forProperty("port")?.toInt32() ?? 0)
+            let udp = (o.forProperty("proto")?.toString() ?? "tcp").lowercased() == "udp"
+            return self.openNet(host, port: port, udp: udp)
+        }
+
         // сховище
         let st = ns(api, "storage")
         def(st, "get") { [weak self] a in
@@ -299,6 +361,30 @@ final class AddonRuntime {
         guard !storageLoaded else { return }
         storageLoaded = true
         if let d = try? Data(contentsOf: storageURL), let o = try? JSONSerialization.jsonObject(with: d) as? [String: Any] { storage = o }
+    }
+
+    private func openNet(_ host: String, port: Int, udp: Bool) -> Any? {
+        guard let n = AddonNet(host: host, port: port, udp: udp) else {
+            fail(String(localized: "Мережа: дозволені лише адреси локальної мережі (10.x, 172.16–31.x, 192.168.x, 169.254.x) і порт 1–65535")); return nil
+        }
+        let id = nextPort; nextPort += 1
+        nets[id] = n
+        let o = JSValue(newObjectIn: ctx)!
+        o.setValue(host, forProperty: "host"); o.setValue(port, forProperty: "port")
+        var openCB: JSValue?, dataCB: JSValue?, closeCB: JSValue?
+        def(o, "write") { [weak n] a in
+            let bytes = (a.first?.toArray() as? [Any] ?? []).compactMap { ($0 as? NSNumber).map { UInt8(truncatingIfNeeded: $0.intValue) } }
+            return n?.write(bytes) ?? false
+        }
+        def(o, "isOpen") { [weak n] _ in n?.isOpen ?? false }
+        def(o, "onOpen") { a in openCB = a.first; return nil }
+        def(o, "onData") { a in dataCB = a.first; return nil }
+        def(o, "onClose") { a in closeCB = a.first; return nil }
+        def(o, "close") { [weak self, weak n] _ in n?.close(); self?.nets[id] = nil; return nil }
+        n.onOpen = { openCB?.call(withArguments: []) }
+        n.onData = { d in dataCB?.call(withArguments: [d.map { Int($0) }]) }
+        n.onClose = { [weak self] in closeCB?.call(withArguments: []); self?.nets[id] = nil }
+        return o
     }
 
     private func openPort(_ path: String, baud: Int) -> Any? {

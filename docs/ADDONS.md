@@ -33,6 +33,7 @@ The user enables an add-on in **Add-ons**, which grants the permissions it decla
 | `params.read` / `params.write` | `ardutune.params.*` (writes are refused while ARMED) |
 | `commands` | `ardutune.cmd.long()` (MAVLink COMMAND_LONG) |
 | `serial` | `ardutune.serial.*` (only `/dev/cu.*` USB ports) |
+| `net` | `ardutune.net.open()` (TCP/UDP, лише приватні IPv4: 10.x, 172.16–31.x, 192.168.x, 169.254.x) |
 | `ui` | `ardutune.ui.page()` |
 | `hud` | `ardutune.hud.lines()` |
 | `map` | `ardutune.map.*`, `ardutune.menu.add()` |
@@ -59,6 +60,9 @@ ardutune.cmd.long(command, p1, p2, p3, p4, p5, p6, p7)
 const port = ardutune.serial.open('/dev/cu.usbserial-1', { baud: 115200 })   // 8N1
 ardutune.serial.list()   // available /dev/cu.usb* ports
 port.write([0xFE, 0xEF, …]); port.onData(bytes => {}); port.onClose(() => {}); port.isOpen(); port.close()
+
+const sock = ardutune.net.open({ host: '192.168.3.102', port: 5000, proto: 'tcp' })   // 'tcp' | 'udp'
+sock.onOpen(() => {}); sock.onData(bytes => {}); sock.onClose(() => {}); sock.write([…]); sock.isOpen(); sock.close()
 
 ardutune.storage.get(key, default) / set(key, value)    // persisted next to the add-on (storage.json)
 

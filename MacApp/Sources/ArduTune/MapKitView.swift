@@ -198,6 +198,8 @@ final class MapController {
 // MARK: - MKMapView
 
 final class MapPin: MKPointAnnotation { var kind = "" }
+/// Позначка розширення: символ SF і колір задає саме розширення.
+final class AddonPin: MKPointAnnotation { var symbol = "mappin"; var colorHex = "#FF3B30" }
 final class RPin: MKPointAnnotation { var wid = UUID(); var cmd = 16 }
 
 final class FlightMKMapView: MKMapView {
@@ -284,6 +286,8 @@ struct FlightMap: NSViewRepresentable {
     var rulerLabel = ""
     let home: CLLocationCoordinate2D?
     var station: CLLocationCoordinate2D? = nil      // станція (антена): позиція для лінії наведення
+    var addonPins: [AddonMarker] = []
+    var addonLines: [AddonLine] = []
     var aimText = ""
     let pois: [POI]
     let circles: [(CLLocationCoordinate2D, Double)]
@@ -335,6 +339,7 @@ struct FlightMap: NSViewRepresentable {
         var dynOv: [MKOverlay] = [], dynSig = ""
         var frontOv: [MKOverlay] = [], frontVer = -1
         var veh: MapPin?, vehRot = -999, home: MapPin?, roi: MapPin?
+        var addonAnn: [AddonPin] = [], addonOv: [MKPolyline] = [], addonSig = ""
         var aimOv: MKPolyline?, stationPin: MapPin?, aimPin: MapPin?, aimSig = "", aimAt = Date.distantPast
         // промені напрямку борту (компас · GPS · гіроскоп)
         var raysPin: MapPin?, raysKey = "", raysData: RayData?
@@ -430,6 +435,22 @@ struct FlightMap: NSViewRepresentable {
             syncRays(m, vehicle: p.vehicle, rays: p.rays)
             rulerLayer.sync(m, a: p.rulerA, b: p.rulerB, label: p.rulerLabel)
             syncAim(m, p)
+            syncAddons(m, p)
+        }
+        /// Позначки й лінії розширень (оновлюються лише при зміні даних).
+        func syncAddons(_ m: MKMapView, _ p: FlightMap) {
+            let sig = p.addonPins.map { "\($0.id)\($0.lat),\($0.lon)\($0.title)\($0.symbol)\($0.color)" }.joined() + "|" + p.addonLines.map { "\($0.id)\($0.points.count)\($0.points.last ?? [])\($0.color)\($0.dashed)" }.joined()
+            guard sig != addonSig else { return }
+            addonSig = sig
+            m.removeAnnotations(addonAnn); m.removeOverlays(addonOv); addonAnn = []; addonOv = []
+            for k in p.addonPins { let a = AddonPin(); a.coordinate = .init(latitude: k.lat, longitude: k.lon); a.title = k.title; a.symbol = k.symbol; a.colorHex = k.color; addonAnn.append(a) }
+            m.addAnnotations(addonAnn)
+            for l in p.addonLines {
+                let pts = l.points.compactMap { $0.count >= 2 ? CLLocationCoordinate2D(latitude: $0[0], longitude: $0[1]) : nil }
+                guard pts.count >= 2 else { continue }
+                let o = MKPolyline(coordinates: pts, count: pts.count); o.title = l.dashed ? "addonD" : "addon"; o.subtitle = l.color; addonOv.append(o)
+            }
+            for o in addonOv { m.addOverlay(o, level: .aboveLabels) }
         }
         /// Лінія від станції (антени) до апарата з підписом азимута, кута місця й відстані; оновлюється не частіше ~3 разів на секунду.
         func syncAim(_ m: MKMapView, _ p: FlightMap) {
@@ -496,6 +517,12 @@ struct FlightMap: NSViewRepresentable {
 
         // MARK: Делегат
         func mapView(_ m: MKMapView, viewFor a: MKAnnotation) -> MKAnnotationView? {
+            if let ap = a as? AddonPin {
+                let v = m.dequeueReusableAnnotationView(withIdentifier: "addonpin") ?? MKAnnotationView(annotation: ap, reuseIdentifier: "addonpin")
+                v.annotation = ap; v.canShowCallout = true
+                v.image = Self.badge(ap.symbol, fg: .white, bg: NSColor(hex: ap.colorHex), size: 26)
+                return v
+            }
             if let r = a as? RPin {
                 let v = m.dequeueReusableAnnotationView(withIdentifier: "rp") ?? MKAnnotationView(annotation: r, reuseIdentifier: "rp")
                 v.annotation = r; v.canShowCallout = false
@@ -536,6 +563,7 @@ struct FlightMap: NSViewRepresentable {
                     return r
                 }
                 if l.title == "ruler" { r.strokeColor = .white; r.lineWidth = 2.5; r.lineDashPattern = [8, 5]; r.lineCap = .round; return r }
+                if l.title == "addon" || l.title == "addonD" { r.strokeColor = NSColor(hex: l.subtitle ?? "#30B0C7"); r.lineWidth = 2.5; if l.title == "addonD" { r.lineDashPattern = [6, 4] } }
                 if l.title == "aim" { r.strokeColor = .systemTeal; r.lineWidth = 2; r.lineDashPattern = [7, 5] }
                 if l.title == "roiLine" { r.strokeColor = .systemYellow; r.lineWidth = 2; r.lineDashPattern = [6, 4] }
                 else { r.strokeColor = .systemPurple; r.lineWidth = 3 }

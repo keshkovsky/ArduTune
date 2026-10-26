@@ -120,6 +120,7 @@ struct PageView: View {
             case "ADSB": ADSBView()
             case "HWID": HWIDView()
             case "Firmware": FirmwareView()
+            case "Addons": AddonsView()
             case "Settings": SettingsView()
             default: ContentUnavailableView("Скоро", systemImage: "hammer", description: Text("Цей розділ ще не реалізований"))
             }
@@ -186,6 +187,7 @@ struct ContentView: View {
             NavItem(id: "HWID", title: "HW ID", icon: "cpu"),
             NavItem(id: "MAVFtp", title: "MAVFtp", icon: "externaldrive"),
             NavItem(id: "Firmware", title: "Install Firmware", icon: "square.and.arrow.down.on.square"),
+            NavItem(id: "Addons", title: "Add-ons", icon: "puzzlepiece"),
         ]),
     ]
 

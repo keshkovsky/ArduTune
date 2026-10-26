@@ -72,7 +72,10 @@ struct OptionalHardwareView: View {
         ConfigGate {
             PageTitle(title: String(localized: "Додаткове обладнання"), subtitle: String(localized: "Далекомір, камера, підвіс, оптичний потік і датчики перешкод. Показано лише те, що є в прошивці вашого польотника."))
             TabStrip(selection: $tab, tabs: [("rng", "Далекомір"), ("cam", "Камера"), ("mnt", "Підвіс"), ("vtx", "VTX"), ("flow", "Оптичний потік"), ("prx", "Перешкоди"),
-                                              ("chute", "Парашут"), ("grip", "Захват"), ("trk", "Антенний трекер")])
+                                              ("chute", "Парашут"), ("grip", "Захват"), ("trk", "Антенний трекер")] + AddonManager.shared.pages("optional").map { ($0.id, $0.title) })
+            if let p = AddonManager.shared.pages("optional").first(where: { $0.id == tab }) {
+                AddonPageView(addonID: String(p.id.split(separator: "/").first ?? ""), pageID: p.pageID).frame(minHeight: 360)
+            } else {
             switch tab {
             case "cam": camera
             case "mnt": gimbal
@@ -88,6 +91,7 @@ struct OptionalHardwareView: View {
                 ParamsCard(title: String(localized: "Уникання перешкод"), icon: "arrow.triangle.swap", params: ["AVOID_ENABLE", "AVOID_MARGIN", "AVOID_BEHAVE", "AVOID_ALT_MIN", "AVOID_ACCEL_MAX", "AVOID_BACKUP_SPD", "AVOID_DIST_MAX"])
                 if !ps.has("PRX1_TYPE") { Text("У цій прошивці немає параметрів датчиків перешкод.").font(.callout).foregroundStyle(.secondary) }
             default: rangefinder
+            }
             }
             RebootRow(text: String(localized: "Тип датчика застосовується після перезавантаження автопілота."))
         }

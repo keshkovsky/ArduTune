@@ -3,7 +3,7 @@ import MapKit
 
 enum FDTab: String, CaseIterable, Identifiable {
     case dashboard = "Dashboard", actions = "Actions", messages = "Messages", params = "Params", video = "Video"
-    case preflight = "PreFlight", status = "Status", servo = "Servo/Relay", aux = "Aux Function", scripts = "Scripts", inspector = "MAVLink Inspector", ekf = "EKF", vibe = "Vibration", tracker = "Tracker"
+    case preflight = "PreFlight", status = "Status", servo = "Servo/Relay", aux = "Aux Function", scripts = "Scripts", inspector = "MAVLink Inspector", ekf = "EKF", vibe = "Vibration", tracker = "Tracker", addons = "Add-ons"
     var id: String { rawValue }
 }
 
@@ -25,6 +25,7 @@ struct FlightView: View {
     @AppStorage("fd.tabs.inspector") private var inspectorAdded = false
     @AppStorage("fd.tabs.ekfvibe") private var ekfVibeAdded = false
     @AppStorage("fd.tabs.tracker") private var trackerAdded = false
+    @AppStorage("fd.tabs.addons") private var addonsTabAdded = false
     @AppStorage("fd.tabs") private var tabsCSV = FDTab.allCases.map(\.rawValue).joined(separator: ",")
     @AppStorage("hud.aspect") private var hudAspect = "auto"
     @AppStorage("hud.swap") private var hudSwap = false
@@ -106,6 +107,10 @@ struct FlightView: View {
         .environment(fs)
         .onAppear {
             fs.startLog()
+            if !addonsTabAdded {
+                addonsTabAdded = true
+                if !tabsCSV.contains(FDTab.addons.rawValue) { tabsCSV += "," + FDTab.addons.rawValue }
+            }
             if !trackerAdded {
                 trackerAdded = true
                 if !tabsCSV.contains(FDTab.tracker.rawValue) { tabsCSV += "," + FDTab.tracker.rawValue }
@@ -303,6 +308,7 @@ struct FlightView: View {
         case .ekf: EKFPanel()
         case .vibe: VibrationPanel()
         case .tracker: TrackerPanel()
+        case .addons: FlightAddonsTab()
         }
     }
 }
@@ -327,6 +333,7 @@ struct FDTabWindow: View {
             case .ekf: EKFPanel()
             case .vibe: VibrationPanel()
             case .tracker: TrackerPanel()
+            case .addons: FlightAddonsTab()
             }
         }
         .frame(minWidth: 520, minHeight: 320)
@@ -432,7 +439,7 @@ struct MapPanel: View {
             rays: hasFix ? RayData.current(yaw: s.t.yaw, magHdg: s.t.magHdg, cog: s.t.cog, speed: s.t.groundSpeed, rays: opt.rays) : nil,
             rulerA: s.mission.ruler.a, rulerB: s.mission.ruler.b, rulerLabel: s.mission.ruler.result.map { RulerLayer.distanceText($0.distance) + "  ·  " + String(format: "%03.0f°", $0.trueAz) } ?? "",
             home: s.t.homeSet ? .init(latitude: s.t.homeLat, longitude: s.t.homeLon) : s.mission.home.map { .init(latitude: $0.lat, longitude: $0.lon) },
-            station: aimStation, aimText: aimText,
+            station: aimStation, addonPins: AddonManager.shared.markers, addonLines: AddonManager.shared.lines, aimText: aimText,
             pois: s.poi.items, circles: circles,
             roiPoint: roi, roiLine: (roi != nil && hasFix) ? [veh, roi!] : [], roiPoly: (roi != nil && hasFix) ? footprint(from: veh, to: roi!) : [],
             front: opt.front ? front.polys : [], frontVersion: opt.front ? front.version : 0,
@@ -548,6 +555,7 @@ struct MapPanel: View {
         mb.item("Виміряти відстань до…") { s.mission.ruler.start(at: c) }
         mb.item("Поставити станцію антени тут", symbol: "antenna.radiowaves.left.and.right") { StationStore.shared.setManual(c) }
         mb.separator()
+        for (_, it) in AddonManager.shared.menuItems() { mb.item(it.title) { AddonManager.shared.fire(it, c) } }
         mb.item("Fly To Here") { flyTo(c, alt: nil) }
         mb.item("Fly To Here Alt") {
             if let r = Prompt.ask("Fly To Here Alt", message: fmt(c), fields: [("Висота, м", String(Int(defaultAlt)))]), let a = Prompt.number(r[0]) { flyTo(c, alt: a) }

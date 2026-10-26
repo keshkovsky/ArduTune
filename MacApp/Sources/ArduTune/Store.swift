@@ -68,7 +68,7 @@ final class Store {
         ps.start()
         launchEngine()
         connect()
-        Task { @MainActor in VoiceAlerts.shared.start(self) }
+        Task { @MainActor in VoiceAlerts.shared.start(self); AddonManager.shared.attach(self) }
         // налаштування застосунку: GCS ID і (за бажанням) без автопідключення при запуску
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             AppSettings.pushGcsID()

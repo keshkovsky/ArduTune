@@ -53,7 +53,7 @@ struct HUDView: View {
     private func show(_ k: String) -> Bool { !config.hidden.contains(k) }
     /// Рядки User Items у порядку вибору: «Назва: значення». Назву можна перейменувати (config.userNames).
     private func userLines() -> [String] {
-        config.userItems.compactMap { k -> String? in
+        AddonManager.shared.hudLines + config.userItems.compactMap { k -> String? in
             let name = config.userNames[k]
             if k.hasPrefix(HUDConfig.mavPrefix) {
                 return "\(name ?? HUDConfig.defaultLabel(k)): \(config.userValues[k] ?? "—")"

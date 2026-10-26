@@ -129,6 +129,7 @@ struct AddonNodeView: View {
             }
             .disabled(node.bool("disabled"))
             .buttonStyle(.bordered).tint(node.bool("prominent") ? .accentColor : color(node.str("tint")))
+            .frame(width: node.num("width").map { CGFloat($0) })
         case "toggle":
             Toggle(lk(node.str("label") ?? ""), isOn: Binding(get: { node.bool("value") }, set: { call("onChange", $0) })).toggleStyle(.checkbox).disabled(node.bool("disabled"))
         case "picker":
@@ -172,7 +173,8 @@ struct AddonNodeView: View {
                 }.frame(height: 6)
             }
         case "divider": Divider().opacity(0.6)
-        case "spacer": Spacer(minLength: node.num("width") ?? 8)
+        case "spacer":
+            if let w = node.num("width") { Color.clear.frame(width: w, height: node.num("height") ?? 1) } else { Spacer(minLength: 8) }
         default:
             VStack(alignment: .leading, spacing: node.num("spacing") ?? 10) { kids }
         }

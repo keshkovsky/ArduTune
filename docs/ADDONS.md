@@ -92,7 +92,7 @@ ardutune.ui.page({
 
 `location`: `addons` = a tab inside the **Add-ons** page, `optional` = a tab in **Optional Hardware**, `flight` = the **Add-ons** tab at the bottom of Flight Data.
 
-Node types: `column`, `row`, `wrap`, `card {title, icon, text}`, `text {text, style: title|headline|caption|mono|big, color}`, `button {label, icon, prominent, disabled, onClick}`, `toggle {label, value, onChange}`, `picker {label, value, options:[{value,label}], onChange}`, `slider {label, value, min, max, onChange}`, `field {label, value, placeholder, onSubmit}`, `progress {label, value, max}`, `meter {label, value, max, warn, bad, format}`, `divider`, `spacer`.
+Node types: `column`, `row`, `wrap`, `card {title, icon, text}`, `text {text, style: title|headline|caption|mono|big, color}`, `button {label, icon, prominent, disabled, onClick}`, `toggle {label, value, onChange}`, `picker {label, value, options:[{value,label}], onChange}`, `slider {label, value, min, max, onChange}`, `field {label, value, placeholder, onSubmit}`, `progress {label, value, max}`, `meter {label, value, max, warn, bad, format}`, `divider`, `spacer` (`{type:'spacer'}` is flexible; with `width`/`height` it is a fixed empty gap).
 Colors: `red green orange yellow blue teal gray` or `#RRGGBB`. Icons are SF Symbols names.
 
 ## Safety

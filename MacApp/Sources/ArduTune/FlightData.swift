@@ -5,6 +5,11 @@ enum FDTab: String, CaseIterable, Identifiable {
     case dashboard = "Dashboard", actions = "Actions", messages = "Messages", params = "Params", video = "Video"
     case preflight = "PreFlight", status = "Status", servo = "Servo/Relay", aux = "Aux Function", scripts = "Scripts", inspector = "MAVLink Inspector", ekf = "EKF", vibe = "Vibration", tracker = "Tracker", addons = "Add-ons"
     var id: String { rawValue }
+    /// Назва вкладки в панелі: єдина сторінка розширення для Flight Data показується під власною назвою (наприклад, «Мій пристрій»).
+    @MainActor var title: String {
+        if self == .addons { let p = AddonManager.shared.pages("flight"); if p.count == 1 { return p[0].title } }
+        return rawValue
+    }
 }
 
 /// Flight Data: HUD + карта зверху, вкладки з даними та діями знизу.
@@ -256,7 +261,7 @@ struct FlightView: View {
                 HStack(spacing: 2) {
                     ForEach(visibleTabs) { t in
                         Button { tab = t } label: {
-                            Text(LocalizedStringKey(t.rawValue)).font(.callout.weight(tab == t ? .semibold : .regular))
+                            Text(LocalizedStringKey(t.title)).font(.callout.weight(tab == t ? .semibold : .regular))
                                 .padding(.horizontal, 12).padding(.vertical, 6)
                                 .background(tab == t ? Color.accentColor.opacity(0.22) : .clear, in: RoundedRectangle(cornerRadius: 6))
                                 .contentShape(Rectangle())
@@ -281,7 +286,7 @@ struct FlightView: View {
             }
             Menu {
                 if hiddenTabs.isEmpty { Text("Усі вкладки вже додано") }
-                ForEach(hiddenTabs) { t in Button(lk(t.rawValue)) { saveTabs(visibleTabs + [t]); tab = t } }
+                ForEach(hiddenTabs) { t in Button(lk(t.title)) { saveTabs(visibleTabs + [t]); tab = t } }
                 Divider()
                 Button("Скинути до типових") { saveTabs(FDTab.allCases); }
             } label: { Image(systemName: "plus.circle").font(.system(size: 15)) }
@@ -337,7 +342,7 @@ struct FDTabWindow: View {
             }
         }
         .frame(minWidth: 520, minHeight: 320)
-        .navigationTitle(lk(raw))
+        .navigationTitle(lk(FDTab(rawValue: raw)?.title ?? raw))
     }
 }
 

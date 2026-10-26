@@ -223,7 +223,6 @@ struct AddonsView: View {
                 HStack(spacing: 10) {
                     Button { mgr.scan() } label: { Label("Перезавантажити розширення", systemImage: "arrow.clockwise") }
                     Button { NSWorkspace.shared.open(AddonManager.folder) } label: { Label("Відкрити теку", systemImage: "folder") }
-                    Button { mgr.installBundledIfNeeded(force: true); mgr.scan() } label: { Label("Відновити вбудовані", systemImage: "square.and.arrow.down") }
                     Spacer()
                 }
                 Text(verbatim: AddonManager.folder.path).font(.caption.monospaced()).foregroundStyle(.secondary).textSelection(.enabled)

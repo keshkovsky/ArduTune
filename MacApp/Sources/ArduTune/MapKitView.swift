@@ -286,6 +286,9 @@ struct FlightMap: NSViewRepresentable {
     var rulerLabel = ""
     let home: CLLocationCoordinate2D?
     var station: CLLocationCoordinate2D? = nil      // станція (антена): позиція для лінії наведення
+    var aimTo: CLLocationCoordinate2D? = nil        // куди тягнути лінію наведення (апарат або ручна ціль трекера)
+    var manualTarget: CLLocationCoordinate2D? = nil // «борт тут»: ручна ціль трекера
+    var beam: BeamSpec? = nil                       // сектор антени
     var addonPins: [AddonMarker] = []
     var addonLines: [AddonLine] = []
     var aimText = ""
@@ -341,6 +344,22 @@ struct FlightMap: NSViewRepresentable {
         var veh: MapPin?, vehRot = -999, home: MapPin?, roi: MapPin?
         var addonAnn: [AddonPin] = [], addonOv: [MKPolyline] = [], addonSig = ""
         var aimOv: MKPolyline?, stationPin: MapPin?, aimPin: MapPin?, aimSig = "", aimAt = Date.distantPast
+        var beamOv: MKPolygon?, beamSig = "", targetPin: MapPin?
+        /// Сектор антени (напівпрозорий клин від станції) і позначка ручної цілі.
+        func syncBeam(_ m: MKMapView, _ p: FlightMap) {
+            if let b = p.beam {
+                let sig = String(format: "%.6f,%.6f|%.2f|%.1f|%.0f|%@|%.2f|%.2f", b.origin.latitude, b.origin.longitude, b.azimuth, b.width, b.range, b.colorHex, b.fill, b.stroke)
+                if sig != beamSig {
+                    beamSig = sig
+                    if let o = beamOv { m.removeOverlay(o) }
+                    let pts = beamPolygon(b)
+                    let g = MKPolygon(coordinates: pts, count: pts.count); g.title = "beam"; g.subtitle = "\(b.colorHex)|\(b.fill)|\(b.stroke)"
+                    beamOv = g; m.addOverlay(g, level: .aboveRoads)
+                }
+            } else if let o = beamOv { m.removeOverlay(o); beamOv = nil; beamSig = "" }
+            if let c = p.manualTarget { pin(&targetPin, kind: "mtarget", at: c, title: String(localized: "Борт (вручну)"), in: m) }
+            else if let a = targetPin { m.removeAnnotation(a); targetPin = nil }
+        }
         // промені напрямку борту (компас · GPS · гіроскоп)
         var raysPin: MapPin?, raysKey = "", raysData: RayData?
         let rulerLayer = RulerLayer()
@@ -435,6 +454,7 @@ struct FlightMap: NSViewRepresentable {
             syncRays(m, vehicle: p.vehicle, rays: p.rays)
             rulerLayer.sync(m, a: p.rulerA, b: p.rulerB, label: p.rulerLabel)
             syncAim(m, p)
+            syncBeam(m, p)
             syncAddons(m, p)
         }
         /// Позначки й лінії розширень (оновлюються лише при зміні даних).
@@ -454,7 +474,7 @@ struct FlightMap: NSViewRepresentable {
         }
         /// Лінія від станції (антени) до апарата з підписом азимута, кута місця й відстані; оновлюється не частіше ~3 разів на секунду.
         func syncAim(_ m: MKMapView, _ p: FlightMap) {
-            guard let st = p.station, let v = p.vehicle else {
+            guard let st = p.station, let v = p.aimTo else {
                 if let o = aimOv { m.removeOverlay(o); aimOv = nil }
                 if let a = stationPin { m.removeAnnotation(a); stationPin = nil }
                 if let a = aimPin { m.removeAnnotation(a); aimPin = nil }
@@ -544,6 +564,7 @@ struct FlightMap: NSViewRepresentable {
                 v.zPriority = MKAnnotationViewZPriority(rawValue: 900)
                 v.image = HeadingRays.image(raysData ?? RayData(), mapHeading: m.camera.heading)
                 raysKey = ""
+            case "mtarget": v.image = Self.badge("airplane", fg: .white, bg: .systemOrange, size: 26); v.canShowCallout = true
             case "station": v.image = Self.badge("antenna.radiowaves.left.and.right", fg: .white, bg: .systemTeal, size: 28); v.canShowCallout = true
             case "aimlabel": v.canShowCallout = false; v.isEnabled = false; v.image = Self.textPill(a.title ?? ""); v.zPriority = MKAnnotationViewZPriority(rawValue: 800)
             case "home": v.image = Self.badge("house.fill", fg: .white, bg: .systemGreen, size: 28); v.canShowCallout = true
@@ -571,7 +592,11 @@ struct FlightMap: NSViewRepresentable {
             }
             if let g = o as? MKPolygon {
                 let r = MKPolygonRenderer(polygon: g)
-                if g.title == "front" {
+                if g.title == "beam" {
+                    let f = (g.subtitle ?? "").split(separator: "|").map(String.init)
+                    let c = NSColor(hex: f.first ?? "#30B0C7")
+                    r.fillColor = c.withAlphaComponent(f.count > 1 ? Double(f[1]) ?? 0.2 : 0.2); r.strokeColor = c.withAlphaComponent(f.count > 2 ? Double(f[2]) ?? 0.45 : 0.45); r.lineWidth = 1.2
+                } else if g.title == "front" {
                     let c = NSColor(hex: g.subtitle ?? "")
                     r.fillColor = c.withAlphaComponent(0.32); r.strokeColor = c.withAlphaComponent(0.9); r.lineWidth = 1
                 } else { r.fillColor = NSColor.systemYellow.withAlphaComponent(0.28); r.strokeColor = .systemYellow; r.lineWidth = 1.5 }

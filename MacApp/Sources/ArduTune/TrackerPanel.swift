@@ -76,7 +76,7 @@ struct TrackerPanel: View {
                         row("Позиція", t.gpsFix >= 2 ? Coords.pair(t.lat, t.lon, decimals: 5) : "—")
                     }
                 }
-                Text("Дані трекера: режим (Auto, Manual, Scan, Servo test), напрям на ціль і положення антени. Керування трекером буде додано пізніше.").font(.caption2).foregroundStyle(.secondary)
+                Text("Дані трекера: режим, напрям на ціль і положення антени. Керування (режими, ручна ціль на мапі, клавіші, сектор антени): піктограма радара у правому куті мапи Flight Data.").font(.caption2).foregroundStyle(.secondary)
             }
             .frame(minWidth: 380)
         } else {

@@ -434,8 +434,12 @@ struct MapPanel: View {
         let routePins: [FlightMap.RoutePin] = opt.showRoute ? mis.items.enumerated().compactMap { i, it in it.hasPos ? FlightMap.RoutePin(id: it.id, lat: it.lat, lon: it.lon, label: String(i + 1), cmd: it.cmd) : nil } : []
         let homeC: CLLocationCoordinate2D? = s.t.homeSet ? .init(latitude: s.t.homeLat, longitude: s.t.homeLon) : s.mission.home.map { .init(latitude: $0.lat, longitude: $0.lon) }
         let stationStore = StationStore.shared
-        let aimStation: CLLocationCoordinate2D? = (stationStore.aimLine && hasFix && s.t.vehicle != "ANTENNA_TRACKER") ? stationStore.coordinate(home: homeC) : nil
-        let aimText: String = aimStation.map { Aim.text(Aim.compute(from: $0, to: veh, height: s.t.altRel)) } ?? ""
+        let trk = TrackerStore.shared
+        let stationC = trk.station(s, home: homeC)
+        let aimTo: CLLocationCoordinate2D? = trk.target ?? ((hasFix && s.t.vehicle != "ANTENNA_TRACKER") ? veh : nil)
+        let aimStation: CLLocationCoordinate2D? = (stationStore.aimLine && aimTo != nil) ? stationC : nil
+        let aimText: String = (aimStation != nil && aimTo != nil) ? Aim.text(Aim.compute(from: aimStation!, to: aimTo!, height: trk.target != nil ? trk.targetAlt : s.t.altRel)) : ""
+        let beamSpec = trk.beam(s, station: stationC, aimTo: aimTo)
         let curSeq = s.t.wpSeq
         let routeCur: UUID? = (opt.showRoute && s.connected && !mis.dirty && curSeq >= 1 && curSeq <= mis.items.count) ? mis.items[curSeq - 1].id : nil
         FlightMap(
@@ -444,7 +448,7 @@ struct MapPanel: View {
             rays: hasFix ? RayData.current(yaw: s.t.yaw, magHdg: s.t.magHdg, cog: s.t.cog, speed: s.t.groundSpeed, rays: opt.rays) : nil,
             rulerA: s.mission.ruler.a, rulerB: s.mission.ruler.b, rulerLabel: s.mission.ruler.result.map { RulerLayer.distanceText($0.distance) + "  ·  " + String(format: "%03.0f°", $0.trueAz) } ?? "",
             home: s.t.homeSet ? .init(latitude: s.t.homeLat, longitude: s.t.homeLon) : s.mission.home.map { .init(latitude: $0.lat, longitude: $0.lon) },
-            station: aimStation, addonPins: AddonManager.shared.markers, addonLines: AddonManager.shared.lines, aimText: aimText,
+            station: aimStation, aimTo: aimTo, manualTarget: trk.target, beam: beamSpec, addonPins: AddonManager.shared.markers, addonLines: AddonManager.shared.lines, aimText: aimText,
             pois: s.poi.items, circles: circles,
             roiPoint: roi, roiLine: (roi != nil && hasFix) ? [veh, roi!] : [], roiPoly: (roi != nil && hasFix) ? footprint(from: veh, to: roi!) : [],
             front: opt.front ? front.polys : [], frontVersion: opt.front ? front.version : 0,
@@ -457,6 +461,9 @@ struct MapPanel: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(alignment: .top) { toolbar }
         .overlay(alignment: .trailing) { MapControls(ctl: ctl).blockMap().padding(.trailing, 10) }
+        .overlay(alignment: .topTrailing) { TrackerRadarButton().blockMap().padding(.top, 52).padding(.trailing, 10) }
+        .background(AddonKeyCatcher { e in trk.handleKey(e, s, station: trk.station(s, home: homeC)) })
+        .onAppear { trk.start(s) }
         .overlay(alignment: .top) {
             if let f = s.mission.following {
                 HStack(spacing: 8) {
@@ -559,6 +566,8 @@ struct MapPanel: View {
         let mb = MenuBuilder()
         mb.item("Виміряти відстань до…") { s.mission.ruler.start(at: c) }
         mb.item("Поставити станцію антени тут", symbol: "antenna.radiowaves.left.and.right") { StationStore.shared.setManual(c) }
+        mb.item("Скерувати трекер сюди (борт тут)", symbol: "scope") { TrackerStore.shared.setTarget(c) }
+        if TrackerStore.shared.target != nil { mb.item("Зняти ручну ціль трекера") { TrackerStore.shared.clearTarget() } }
         mb.separator()
         for (_, it) in AddonManager.shared.menuItems() { mb.item(it.title) { AddonManager.shared.fire(it, c) } }
         mb.item("Fly To Here") { flyTo(c, alt: nil) }

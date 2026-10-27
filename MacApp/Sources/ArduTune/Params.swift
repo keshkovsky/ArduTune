@@ -454,6 +454,15 @@ struct DetailPane: View {
                                 .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                             Text(lk(loc("Тип: ") + ["", "int8", "int8", "int16", "int16", "int32", "int32", "int64", "int64", "float"][min(max(p.type, 0), 9)] + (p.isInt ? " (ціле)" : " (дробове)")))
                                 .font(.caption).foregroundStyle(.secondary)
+                            let hints = ParamGuess.hints(p.name, isInt: p.isInt, value: p.value)
+                            if !hints.isEmpty {
+                                Text("Припущення за назвою (не з офіційних описів)").font(.caption.weight(.semibold)).padding(.top, 4)
+                                ForEach(hints, id: \.self) { Text(lk("• " + $0)).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
+                            }
+                            HStack(spacing: 10) {
+                                if let u = ParamGuess.searchURL(p.name) { Link(destination: u) { Label("Пошук у коді ArduPilot", systemImage: "magnifyingglass") }.font(.caption) }
+                                if let u = ParamGuess.docsURL(p.name) { Link(destination: u) { Label("Документація", systemImage: "book") }.font(.caption) }
+                            }.padding(.top, 2)
                             if !related.isEmpty {
                                 Text("Схожі параметри тієї ж групи").font(.caption.weight(.semibold)).padding(.top, 4)
                                 ForEach(related, id: \.0) { r in
@@ -474,4 +483,39 @@ struct DetailPane: View {
             }
         }
     }
+}
+
+
+/// Підказки для параметрів, яких немає в описах ArduPilot (нова dev-збірка): висновки з назви й посилання на джерела.
+enum ParamGuess {
+    static let suffixes: [(String, String)] = [
+        ("_ENABLE", "вмикач (0 — вимкнено, 1 — увімкнено)"), ("_EN", "вмикач (0 — вимкнено, 1 — увімкнено)"),
+        ("_MASK", "бітова маска: кожен біт — окрема опція"), ("_OPTIONS", "бітова маска додаткових опцій"), ("_BITMASK", "бітова маска"),
+        ("_TYPE", "тип або вибір варіанта зі списку"), ("_MODE", "режим роботи (номер варіанта)"), ("_SRC", "джерело даних (номер варіанта)"),
+        ("_TIME", "час, найімовірніше в секундах"), ("_TIMEOUT", "тайм-аут, найімовірніше в секундах або мілісекундах"), ("_DELAY", "затримка"),
+        ("_MS", "значення в мілісекундах"), ("_HZ", "частота, Гц"), ("_RATE", "швидкість або частота"),
+        ("_DIST", "відстань, найімовірніше в метрах"), ("_ALT", "висота, найімовірніше в метрах"), ("_CM", "значення в сантиметрах"), ("_M", "значення в метрах"),
+        ("_SPD", "швидкість"), ("_SPEED", "швидкість"), ("_ACCEL", "прискорення"),
+        ("_DEG", "кут у градусах"), ("_ANGLE", "кут"), ("_LIM", "обмеження"), ("_MAX", "верхня межа"), ("_MIN", "нижня межа"),
+        ("_P", "пропорційне підсилення (P) регулятора"), ("_I", "інтегральне підсилення (I) регулятора"), ("_D", "диференціальне підсилення (D) регулятора"),
+        ("_FF", "пряма подача (feedforward)"), ("_IMAX", "обмеження інтегральної складової"), ("_FILT", "частота зрізу фільтра, Гц"),
+        ("_PIN", "номер виводу (піна) плати"), ("_CHAN", "номер каналу"), ("_ID", "ідентифікатор"), ("_PCT", "значення у відсотках"), ("_PERCENT", "значення у відсотках"),
+        ("_SCALE", "масштабний коефіцієнт"), ("_OFS", "зсув (offset)"), ("_OFFSET", "зсув (offset)"), ("_TRIM", "нейтральне положення чи підгонка"),
+    ]
+
+    static func hints(_ name: String, isInt: Bool, value: Double) -> [String] {
+        var out: [String] = []
+        if let g = name.split(separator: "_").first, name.contains("_") { out.append(String(localized: "Група «\(String(g))_»: параметри однієї підсистеми, див. схожі нижче."))}
+        if let m = suffixes.filter({ name.hasSuffix($0.0) }).max(by: { $0.0.count < $1.0.count }) { out.append(String(localized: "Закінчення «\(m.0)»: \(loc(m.1)).")) }
+        if isInt && (value == 0 || value == 1) && out.count < 3 { out.append(String(localized: "Значення 0 або 1: схоже на перемикач.")) }
+        return out
+    }
+
+    /// Пошук імені параметра в репозиторії ArduPilot.
+    static func searchURL(_ name: String) -> URL? {
+        var c = URLComponents(string: "https://github.com/search")
+        c?.queryItems = [.init(name: "q", value: "repo:ArduPilot/ardupilot \"\(name)\""), .init(name: "type", value: "code")]
+        return c?.url
+    }
+    static func docsURL(_ name: String) -> URL? { URL(string: "https://ardupilot.org/dev/docs/parameters.html#" + name.lowercased().replacingOccurrences(of: "_", with: "-")) }
 }

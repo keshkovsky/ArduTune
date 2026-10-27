@@ -377,7 +377,7 @@ struct LogGraphView: View {
     @State private var filter = 0                 // 0 усі, 1 популярні, 2 найбільше даних
 
     /// Групи й поля, які найчастіше розбирають під час аналізу польоту (порядок = порядок показу).
-    static let popular: [String: [String]] = [
+    static let defaultPopular: [String: [String]] = [
         "ATT": ["Roll", "DesRoll", "Pitch", "DesPitch", "Yaw", "DesYaw"],
         "RATE": ["R", "RDes", "ROut", "P", "PDes", "POut", "Y", "YDes", "YOut"],
         "VIBE": ["VibeX", "VibeY", "VibeZ", "Clip0", "Clip1", "Clip2", "Clip"],
@@ -401,7 +401,8 @@ struct LogGraphView: View {
         "MAG": ["MagX", "MagY", "MagZ"],
         "POWR": ["Vcc", "VServo"],
     ]
-    static let popularOrder = ["ATT", "RATE", "VIBE", "IMU", "BAT", "BARO", "CTUN", "RCIN", "RCOU", "GPS", "XKF4", "XKF1", "POS", "PIDR", "PIDP", "PIDY", "MODE", "ERR", "TECS", "ARSP", "MAG", "POWR"]
+    static let defaultOrder = ["ATT", "RATE", "VIBE", "IMU", "BAT", "BARO", "CTUN", "RCIN", "RCOU", "GPS", "XKF4", "XKF1", "POS", "PIDR", "PIDP", "PIDY", "MODE", "ERR", "TECS", "ARSP", "MAG", "POWR"]
+    private var pop: LogPopular { LogPopular.shared }
     static func compact(_ n: Int) -> String { n >= 1_000_000 ? String(format: "%.1fM", Double(n) / 1e6) : n >= 10_000 ? "\(n / 1000)k" : n >= 1000 ? String(format: "%.1fk", Double(n) / 1000) : "\(n)" }
 
     var maxCount: Int { log.order.map { log.count($0) }.max() ?? 1 }
@@ -409,7 +410,7 @@ struct LogGraphView: View {
     var visibleGroups: [String] {
         var g = log.order.filter { search.isEmpty || $0.localizedCaseInsensitiveContains(search) || log.fields(of: $0).contains { $0.localizedCaseInsensitiveContains(search) } }
         switch filter {
-        case 1: g = Self.popularOrder.filter { g.contains($0) }
+        case 1: g = pop.order.filter { g.contains($0) }
         case 2: g = Array(g.filter { log.count($0) > 0 }.sorted { log.count($0) > log.count($1) }.prefix(14))
         default: break
         }
@@ -418,7 +419,7 @@ struct LogGraphView: View {
     /// У групі спершу популярні поля (із зірочкою), потім решта.
     func orderedFields(_ n: String) -> [String] {
         let all = plottable(n)
-        guard let top = Self.popular[n] else { return all }
+        guard let top = pop.fields[n] else { return all }
         return top.filter { all.contains($0) } + all.filter { !top.contains($0) }
     }
     @State private var normalize = false
@@ -449,17 +450,28 @@ struct LogGraphView: View {
                 .pickerStyle(.segmented).labelsHidden().controlSize(.small).frame(maxWidth: .infinity)
                 .padding(.horizontal, 8).padding(.vertical, 6)
                 .help("Усі групи · типові для аналізу · групи з найбільшою кількістю записів у цьому логу")
+                if filter == 1 {
+                    HStack(spacing: 6) {
+                        Text("Зірочка біля поля додає його до популярних.").font(.caption2).foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Скинути") { pop.reset() }.controlSize(.mini).disabled(pop.isDefault)
+                    }.padding(.horizontal, 8).padding(.bottom, 4)
+                }
                 List {
                     ForEach(visibleGroups, id: \.self) { n in
                         let open = expanded.contains(n) || (!search.isEmpty && log.fields(of: n).contains { $0.localizedCaseInsensitiveContains(search) })
                         let chosen = selected.filter { $0.hasPrefix(n + ".") }.count
-                        let top = Self.popular[n] ?? []
+                        let top = pop.fields[n] ?? []
                         DisclosureGroup(isExpanded: Binding(get: { open }, set: { on in if on { expanded.insert(n) } else { expanded.remove(n) } })) {
                             ForEach(orderedFields(n), id: \.self) { f in
                                 HStack(spacing: 6) {
                                     Toggle(lk(f), isOn: Binding(get: { selected.contains("\(n).\(f)") }, set: { on in toggle("\(n).\(f)", on) }))
                                         .toggleStyle(.checkbox).font(.caption).help(lk(LogKnowledge.fieldHelp(n, f) ?? ""))
-                                    if top.contains(f) { Image(systemName: "star.fill").font(.system(size: 8)).foregroundStyle(.yellow.opacity(0.8)).help("Часто використовується для аналізу") }
+                                    Spacer(minLength: 0)
+                                    Button { pop.toggle(n, f) } label: {
+                                        Image(systemName: top.contains(f) ? "star.fill" : "star").font(.system(size: 9))
+                                            .foregroundStyle(top.contains(f) ? Color.yellow.opacity(0.85) : Color.secondary.opacity(0.35))
+                                    }.buttonStyle(.plain).help(top.contains(f) ? "Прибрати з популярних" : "Додати до популярних")
                                 }
                             }
                         } label: {
@@ -472,7 +484,7 @@ struct LogGraphView: View {
                                         .foregroundStyle(on == 0 ? Color.secondary : Color.accentColor)
                                 }
                                 .buttonStyle(.plain).help(lk(on == fields.count ? "Прибрати всі поля групи з графіка" : "Додати на графік усі поля групи"))
-                                if filter == 0, Self.popular[n] != nil { Image(systemName: "star.fill").font(.system(size: 8)).foregroundStyle(.yellow.opacity(0.8)) }
+                                if filter == 0, pop.fields[n] != nil { Image(systemName: "star.fill").font(.system(size: 8)).foregroundStyle(.yellow.opacity(0.8)) }
                                 // число біля назви = кількість полів у списку; кількість записів у логу праворуч сірим
                                 Text("\(n)  ·  \(plottable(n).count)\(LogKnowledge.info(n).map { "  " + loc($0.title) } ?? "")").lineLimit(1)
                                 Spacer(minLength: 4)
@@ -749,5 +761,36 @@ extension DFLog {
         }
         flush()
         return true
+    }
+}
+
+
+/// Набір «популярних» полів логів: типовий або змінений користувачем (зберігається в UserDefaults).
+@Observable
+final class LogPopular {
+    static let shared = LogPopular()
+    private static let key = "log.popular.v1"
+    var fields: [String: [String]]
+    var order: [String]
+
+    init() {
+        if let d = UserDefaults.standard.data(forKey: Self.key),
+           let o = try? JSONDecoder().decode(Saved.self, from: d) { fields = o.fields; order = o.order }
+        else { fields = LogGraphView.defaultPopular; order = LogGraphView.defaultOrder }
+    }
+    private struct Saved: Codable { var fields: [String: [String]]; var order: [String] }
+
+    var isDefault: Bool { fields == LogGraphView.defaultPopular && order == LogGraphView.defaultOrder }
+
+    func toggle(_ group: String, _ field: String) {
+        var list = fields[group] ?? []
+        if let i = list.firstIndex(of: field) { list.remove(at: i) } else { list.append(field) }
+        if list.isEmpty { fields[group] = nil; order.removeAll { $0 == group } }
+        else { fields[group] = list; if !order.contains(group) { order.append(group) } }
+        save()
+    }
+    func reset() { fields = LogGraphView.defaultPopular; order = LogGraphView.defaultOrder; UserDefaults.standard.removeObject(forKey: Self.key) }
+    private func save() {
+        if let d = try? JSONEncoder().encode(Saved(fields: fields, order: order)) { UserDefaults.standard.set(d, forKey: Self.key) }
     }
 }

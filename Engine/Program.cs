@@ -1054,6 +1054,22 @@ class Program
         app.MapPost("/cmd/roi", (double lat, double lon, float alt) => { link.CmdInt(MAV_CMD.DO_SET_ROI_LOCATION, lat, lon, alt, (byte)MAV_FRAME.GLOBAL_RELATIVE_ALT_INT); return Results.Ok(); });
         app.MapPost("/cmd/roinone", () => { link.Cmd(MAV_CMD.DO_SET_ROI_NONE); return Results.Ok(); });
         // Gripper: action 0 = відпустити, 1 = захопити (MAV_CMD_DO_GRIPPER: p1 = номер gripper, p2 = дія)
+        // ---- Довільні MAVLink-повідомлення (розширення) ----
+        app.MapPost("/mav/send", async (HttpContext ctx, string name, int? sys, int? comp) =>
+        {
+            JsonElement body;
+            try { using var d = await JsonDocument.ParseAsync(ctx.Request.Body); body = d.RootElement.Clone(); } catch { body = default; }
+            var err = link.SendRaw(name, body, sys ?? Link.GcsId, comp ?? 190);
+            return err == null ? Results.Ok() : Results.Json(new { error = err }, statusCode: 400);
+        });
+        app.MapGet("/mav/get", (string name) =>
+        {
+            var m = link.GetRaw(name, out var age);
+            return m == null ? Results.Json(new { error = "none" }, statusCode: 404) : Results.Json(new { age, fields = m });
+        });
+        // ---- Антенний трекер ----
+        app.MapPost("/tracker/pos", (double lat, double lon, double alt, double rel, int sysid) => { var e = link.TrackerPosition(lat, lon, alt, rel, sysid); return e == null ? Results.Ok() : Results.Json(new { error = e }, statusCode: 400); });
+        app.MapPost("/tracker/aim", (double az, double el) => { var e = link.TrackerAim(az, el); return e == null ? Results.Ok() : Results.Json(new { error = e }, statusCode: 400); });
         app.MapPost("/cmd/gripper", (int action) => { link.Cmd(MAV_CMD.DO_GRIPPER, 1, action == 0 ? 0 : 1); return Results.Ok(); });
         // Довільна COMMAND_LONG (для розширень з дозволом «commands»)
         app.MapPost("/cmd/long", (int cmd, float p1, float p2, float p3, float p4, float p5, float p6, float p7) => { link.Cmd((MAV_CMD)cmd, p1, p2, p3, p4, p5, p6, p7); return Results.Ok(); });

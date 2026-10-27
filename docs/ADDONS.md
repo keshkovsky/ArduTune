@@ -34,6 +34,9 @@ The user enables an add-on in **Add-ons**, which grants the permissions it decla
 | `commands` | `ardutune.cmd.long()` (MAVLink COMMAND_LONG) |
 | `serial` | `ardutune.serial.*` (only `/dev/cu.*` USB ports) |
 | `net` | `ardutune.net.open()` (TCP/UDP, лише приватні IPv4: 10.x, 172.16–31.x, 192.168.x, 169.254.x) |
+| `mavlink` | `ardutune.mavlink.send()` / `get()` (raw MAVLink by message name) |
+| `http` | `ardutune.http.request()` to private LAN addresses (http or https) |
+| `internet` | `ardutune.http.request()` to public hosts (HTTPS only; never localhost or private ranges) |
 | `ui` | `ardutune.ui.page()` |
 | `hud` | `ardutune.hud.lines()` |
 | `map` | `ardutune.map.*`, `ardutune.menu.add()` |
@@ -63,6 +66,15 @@ port.write([0xFE, 0xEF, …]); port.onData(bytes => {}); port.onClose(() => {});
 
 const sock = ardutune.net.open({ host: '192.168.3.102', port: 5000, proto: 'tcp' })   // 'tcp' | 'udp'
 sock.onOpen(() => {}); sock.onData(bytes => {}); sock.onClose(() => {}); sock.write([…]); sock.isOpen(); sock.close()
+
+// raw MAVLink (permission `mavlink`). Fields are given by their MAVLink names; arrays as arrays, char arrays as strings.
+ardutune.mavlink.send('NAMED_VALUE_FLOAT', { time_boot_ms: 0, name: 'MYVAL', value: 1.5 }, { sys: 255, comp: 190 })   // sys/comp optional
+ardutune.mavlink.get('GLOBAL_POSITION_INT')   // → { age: seconds since last message, fields: { lat: 504500000, … } } or null
+// Not sendable: COMMAND_LONG/INT, SET_MODE, PARAM_SET, MISSION_*, FILE_TRANSFER_PROTOCOL, SERIAL_CONTROL, LOG_ERASE (use the dedicated APIs).
+
+// HTTP (permission `http` for LAN, `internet` for public HTTPS)
+ardutune.http.request({ url: 'http://192.168.3.1/status', method: 'GET', headers: {}, body: '…' | {json}, timeout: 10 },
+                      res => { /* res.status, res.body (text, ≤2 MB), res.error */ })
 
 ardutune.storage.get(key, default) / set(key, value)    // persisted next to the add-on (storage.json)
 
@@ -98,7 +110,7 @@ Colors: `red green orange yellow blue teal gray` or `#RRGGBB`. Icons are SF Symb
 ## Safety
 
 - Add-ons are code from files: enable only those you trust.
-- The runtime has no file or network access beyond what the API above exposes.
+- The runtime has no file access, and network access only through `net`, `http` and `internet` (LAN-only unless `internet` is granted).
 - Parameter writes are refused while ARMED; flight commands need the `commands` permission.
 - Never block the JS thread with long loops: everything runs on the app's main thread.
 

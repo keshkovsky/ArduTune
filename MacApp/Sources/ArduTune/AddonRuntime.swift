@@ -277,6 +277,68 @@ final class AddonRuntime {
             return self.openNet(host, port: port, udp: udp)
         }
 
+        // сирі MAVLink-повідомлення
+        let mav = ns(api, "mavlink")
+        def(mav, "send") { [weak self] a in
+            guard let self, self.need("mavlink"), let name = a.first?.toString() else { return false }
+            var q = "name=" + (name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name)
+            if a.count > 2, let o = a[2].toObject() as? [String: Any] {
+                if let v = o["sys"] as? Double { q += "&sys=\(Int(v))" }
+                if let v = o["comp"] as? Double { q += "&comp=\(Int(v))" }
+            }
+            let fields = (a.count > 1 ? a[1].toObject() : nil) as? [String: Any] ?? [:]
+            guard let body = try? JSONSerialization.data(withJSONObject: fields), let url = URL(string: EngineAPI.base + "/mav/send?" + q) else { return false }
+            var r = EngineAPI.request(url, method: "POST"); r.httpBody = body; r.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            URLSession.shared.dataTask(with: r) { [weak self] d, resp, _ in
+                guard (resp as? HTTPURLResponse)?.statusCode != 200 else { return }
+                let msg = (d.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] })?["error"] as? String ?? "?"
+                DispatchQueue.main.async { self?.fail("MAVLink \(name): \(msg)") }
+            }.resume()
+            return true
+        }
+        def(mav, "get") { [weak self] a in
+            guard let self, self.need("mavlink"), let name = a.first?.toString(),
+                  let url = URL(string: EngineAPI.base + "/mav/get?name=" + (name.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? name)) else { return nil }
+            var out: Any?
+            let sem = DispatchSemaphore(value: 0)
+            var r = EngineAPI.request(url); r.timeoutInterval = 0.5
+            URLSession.shared.dataTask(with: r) { d, resp, _ in
+                if (resp as? HTTPURLResponse)?.statusCode == 200, let d { out = try? JSONSerialization.jsonObject(with: d) }
+                sem.signal()
+            }.resume()
+            _ = sem.wait(timeout: .now() + 0.6)
+            return out
+        }
+
+        // HTTP/HTTPS: ardutune.http.request({url, method, headers, body, timeout}, cb) → cb({status, body, error})
+        let http = ns(api, "http")
+        def(http, "request") { [weak self] a in
+            guard let self, a.count >= 2, let o = a.first, let cb = a.last, let us = o.forProperty("url")?.toString(), let url = URL(string: us),
+                  let host = url.host?.lowercased(), let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https" else { self?.fail(String(localized: "HTTP: некоректний URL")); return nil }
+            let lan = AddonNet.isLAN(host)
+            if lan { guard self.need("http") else { return nil } }
+            else {
+                guard self.need("internet") else { return nil }
+                guard scheme == "https", !host.hasSuffix(".local"), !host.hasSuffix(".localhost"), host != "localhost", !host.hasPrefix("127."), host != "::1", !host.contains(":") else {
+                    self.fail(String(localized: "HTTP: до інтернету дозволено лише HTTPS і не на локальні адреси")); return nil
+                }
+            }
+            var r = URLRequest(url: url)
+            r.httpMethod = (o.forProperty("method")?.toString() ?? "GET").uppercased()
+            r.timeoutInterval = min(30, max(1, o.forProperty("timeout")?.toDouble() ?? 10))
+            if let h = o.forProperty("headers")?.toObject() as? [String: Any] { for (k, v) in h { r.setValue("\(v)", forHTTPHeaderField: k) } }
+            if let b = o.forProperty("body"), !b.isUndefined, !b.isNull { r.httpBody = (b.isString ? b.toString() ?? "" : String(data: (try? JSONSerialization.data(withJSONObject: b.toObject() as Any)) ?? Data(), encoding: .utf8) ?? "").data(using: .utf8) }
+            URLSession.shared.dataTask(with: r) { [weak self] d, resp, err in
+                let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
+                let text = String(data: (d ?? Data()).prefix(2_000_000), encoding: .utf8) ?? ""
+                DispatchQueue.main.async {
+                    guard let self, self.running else { return }
+                    cb.call(withArguments: [["status": code, "body": text, "error": err?.localizedDescription ?? NSNull()]])
+                }
+            }.resume()
+            return true
+        }
+
         // сховище
         let st = ns(api, "storage")
         def(st, "get") { [weak self] a in

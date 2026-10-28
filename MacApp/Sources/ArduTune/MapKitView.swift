@@ -649,7 +649,7 @@ struct MapControls: View {
                     .rotationEffect(.degrees(-ctl.heading))
                     .foregroundStyle(abs(ctl.heading) < 0.5 || abs(ctl.heading - 360) < 0.5 ? Color.secondary : Color.red)
                     .frame(width: 30, height: 30).contentShape(Rectangle())
-            }.buttonStyle(.plain).help("Північ угору (кут \(Int(ctl.heading))°). Карту також можна обертати двома пальцями на трекпаді")
+            }.buttonStyle(.plain).tip("Північ угору (кут \(Int(ctl.heading))°). Карту також можна обертати двома пальцями на трекпаді")
             btn("arrow.clockwise", "Повернути карту за годинниковою на 15°") { ctl.rotate(by: -15) }
         }
         .font(.system(size: 13, weight: .semibold))
@@ -659,6 +659,6 @@ struct MapControls: View {
         .transaction { $0.animation = nil }
     }
     func btn(_ icon: String, _ help: String, _ f: @escaping () -> Void) -> some View {
-        Button(action: f) { Image(systemName: icon).frame(width: 30, height: 28).contentShape(Rectangle()) }.buttonStyle(.plain).help(lk(help))
+        Button(action: f) { Image(systemName: icon).frame(width: 30, height: 28).contentShape(Rectangle()) }.buttonStyle(.plain).tip(help)
     }
 }

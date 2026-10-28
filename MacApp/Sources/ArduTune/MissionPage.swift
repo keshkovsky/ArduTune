@@ -147,7 +147,7 @@ struct MissionPage: View {
         Capsule().fill(Color.secondary.opacity(0.85)).frame(width: 90, height: 5)
         .frame(maxWidth: .infinity, minHeight: 18, maxHeight: 18).padding(.horizontal, 8)
         .contentShape(Rectangle())
-        .help("Потягніть, щоб змінити розмір профілю. У нижньому положенні він згортається. Подвійний клік: згорнути чи розгорнути")
+        .tip("Потягніть, щоб змінити розмір профілю. У нижньому положенні він згортається. Подвійний клік: згорнути чи розгорнути")
         .onHover { if $0 { NSCursor.resizeUpDown.push() } else { NSCursor.pop() } }
         .onTapGesture(count: 2) { withAnimation(.snappy(duration: 0.2)) { if profShow { profShow = false } else { profShow = true; profH = Self.profMid } } }
         .gesture(DragGesture(minimumDistance: 2, coordinateSpace: .global)
@@ -320,7 +320,7 @@ struct MissionToolbar: View {
                 .foregroundStyle(on ? Color.white : Color.primary)
                 .frame(width: 30, height: 24)
                 .background(on ? Color.accentColor : Color.clear, in: RoundedRectangle(cornerRadius: 6))
-        }.buttonStyle(.plain).help(LocalizedStringKey(help))
+        }.buttonStyle(.plain).tip(help)
     }
 
     func row(compact: Bool) -> some View {
@@ -336,17 +336,17 @@ struct MissionToolbar: View {
                         Button { m.tool = id; m.addMode = true } label: { Label(lk(Self.name(id).prefix(1).uppercased() + Self.name(id).dropFirst()), systemImage: Self.icon(id)) }
                     }
                 } label: { Image(systemName: Self.icon(m.tool)) }
-                    .menuStyle(.borderlessButton).fixedSize().help("Що додає клік по карті: \(Self.name(m.tool))")
+                    .menuStyle(.borderlessButton).fixedSize().tip("Що додає клік по карті: \(Self.name(m.tool))")
                 Divider().frame(height: 16)
                 HStack(spacing: 3) {
                     Image(systemName: "arrow.up.to.line").foregroundStyle(.secondary)
                     TextField("", value: $m.defaultAlt, format: .number).textFieldStyle(.roundedBorder).frame(width: compact ? 46 : 52).multilineTextAlignment(.trailing)
                     if !compact { Text("м").foregroundStyle(.secondary) }
-                }.help("Висота нових точок, м")
+                }.tip("Висота нових точок, м")
             }
             HStack(spacing: 4) {
-                Button { m.undo() } label: { Image(systemName: "arrow.uturn.backward").font(.system(size: 14, weight: .medium)).foregroundStyle(Color.primary).frame(width: 30, height: 26).contentShape(Rectangle()) }.help("Скасувати (⌘Z)")
-                Button { m.redo() } label: { Image(systemName: "arrow.uturn.forward").font(.system(size: 14, weight: .medium)).foregroundStyle(Color.primary).frame(width: 30, height: 26).contentShape(Rectangle()) }.help("Повторити (⇧⌘Z)")
+                Button { m.undo() } label: { Image(systemName: "arrow.uturn.backward").font(.system(size: 14, weight: .medium)).foregroundStyle(Color.primary).frame(width: 30, height: 26).contentShape(Rectangle()) }.tip("Скасувати (⌘Z)")
+                Button { m.redo() } label: { Image(systemName: "arrow.uturn.forward").font(.system(size: 14, weight: .medium)).foregroundStyle(Color.primary).frame(width: 30, height: 26).contentShape(Rectangle()) }.tip("Повторити (⇧⌘Z)")
             }.buttonStyle(.plain)
             Menu {
                 ForEach(MapLayer.groups, id: \.0) { g in
@@ -355,10 +355,10 @@ struct MissionToolbar: View {
                 Divider()
                 Toggle("Лінія фронту (DeepState)", isOn: $opt.front)
                 Toggle("Напрямки борту: компас · GPS · гіро", isOn: $opt.rays)
-            } label: { Image(systemName: "square.3.layers.3d") }.menuStyle(.borderlessButton).fixedSize().help("Шар карти (у 3D це текстура рельєфу)")
+            } label: { Image(systemName: "square.3.layers.3d") }.menuStyle(.borderlessButton).fixedSize().tip("Шар карти (у 3D це текстура рельєфу)")
             Divider().frame(height: 16)
             Toggle(isOn: $m.view3D) { Label("3D", systemImage: "cube") }.toggleStyle(.button).controlSize(.small).fixedSize()
-                .help("Тривимірний вигляд: рельєф з висотами, маршрут і апарат у 3D з живими показниками")
+                .tip("Тривимірний вигляд: рельєф з висотами, маршрут і апарат у 3D з живими показниками")
         }
     }
 }

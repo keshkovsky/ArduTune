@@ -399,12 +399,12 @@ struct MapToolbar: View {
                     Toggle("Fly to here (double-click)", isOn: $opt.flyHere)
                     Toggle("Трек", isOn: $opt.showTrack)
                 } label: { Image(systemName: "slider.horizontal.3").font(.system(size: 14, weight: .semibold)) }
-                    .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().help("Параметри карти: Auto Pan, Fly to here, Трек")
+                    .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().tip("Параметри карти: Auto Pan, Fly to here, Трек")
             }
             iconPill {
                 Button { ruler.active.toggle(); ruler.clear() } label: {
                     Image(systemName: "ruler").font(.system(size: 14, weight: .semibold)).foregroundStyle(ruler.active ? Color.accentColor : Color.primary)
-                }.buttonStyle(.plain).help("Лінійка: клікніть по карті двічі (точки можна перетягувати)")
+                }.buttonStyle(.plain).tip("Лінійка: клікніть по карті двічі (точки можна перетягувати)")
             }
             Spacer(minLength: 8)
             pill {
@@ -528,12 +528,12 @@ struct MapPanel: View {
             } label: {
                 Text(Coords.pair(s.t.lat, s.t.lon, decimals: 7, sep: "  ")).font(.system(.caption, design: .monospaced))
             }
-            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().help("Формат координат: натисніть, щоб змінити")
+            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().tip("Формат координат: натисніть, щоб змінити")
             Text(String(format: loc("%.1f м"), s.t.altRel)).font(.system(.caption, design: .monospaced))
             if let n = note { Text(LocalizedStringKey(n)).font(.caption).foregroundStyle(.orange).lineLimit(1) }
             Spacer()
-            Button { s.track.removeAll() } label: { Image(systemName: "eraser") }.controlSize(.small).help("Clear Track")
-            Button { centerOnVehicle() } label: { Image(systemName: "scope") }.controlSize(.small).help("До дрона")
+            Button { s.track.removeAll() } label: { Image(systemName: "eraser") }.controlSize(.small).tip("Clear Track")
+            Button { centerOnVehicle() } label: { Image(systemName: "scope") }.controlSize(.small).tip("До дрона")
         }
         .padding(.horizontal, 10).padding(.vertical, 6)
         .background(.regularMaterial)

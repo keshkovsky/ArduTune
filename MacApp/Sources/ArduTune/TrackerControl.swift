@@ -161,7 +161,7 @@ struct TrackerRadarButton: View {
                 .background(active ? Color.teal.opacity(0.9) : Color(nsColor: .windowBackgroundColor).opacity(0.58), in: RoundedRectangle(cornerRadius: 8))
         }
         .buttonStyle(.plain).blockMap()
-        .help("Антенний трекер і сектор антени")
+        .tip("Антенний трекер і сектор антени")
         .popover(isPresented: $open, arrowEdge: .bottom) { TrackerQuickMenu().environment(s) }
     }
 }

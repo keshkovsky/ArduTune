@@ -132,7 +132,7 @@ struct HUDView: View {
             let ink = th.ink, accent = th.accent
             let wide = (c.x - gOff - gr > 108 * u) && h > 360          // дуги THR/BATT вміщуються між стрічками
             let gr2 = wide ? gr : gr * 0.82
-            let gOff2 = wide ? gOff : max(Rr + gr2 + 6 * u, min(gOff, c.x - gr2 - 8 * u))      // у вузькому вікні дуги ближче до компаса
+            let gOff2 = wide ? gOff : max(Rr + gr2 + 6 * u, min(gOff, c.x - gr2 - 64 * u))      // у вузькому вікні дуги ближче до компаса
             let textWide = w > 600 * u                                 // текст стоїть поряд зі стрічкою швидкості
             let userL = userLines()
             let roseTop = show("compass") ? rc.y - Rr - 32 * u : h - 10 * u
@@ -313,7 +313,16 @@ struct HUDView: View {
                 let small = r < 36 * u
                 if !small { for (i, s) in sub.enumerated() { ctx.draw(T(s, 10, .medium, 0.7), at: CGPoint(x: ctr.x, y: ctr.y + r * 0.62 + CGFloat(i) * 12 * u)) } }
                 ctx.draw(T(label, small ? 10 : 11, .bold), at: CGPoint(x: ctr.x, y: ctr.y + r + 13 * u))
-                if small { for (i, s) in sub.enumerated() { ctx.draw(T(s, 9.5, .medium, 0.75), at: CGPoint(x: ctr.x, y: ctr.y + r + 13 * u + CGFloat(i + 1) * 12 * u)) } }
+                if small {
+                    // V і A праворуч від кільця (якщо вміщуються), інакше під підписом
+                    if ctr.x + r + 7 * u + 52 * u <= w {
+                        for (i, s) in sub.enumerated() {
+                            ctx.draw(T(s, 12.5, .semibold, 0.92), at: CGPoint(x: ctr.x + r + 7 * u, y: ctr.y + (CGFloat(i) - CGFloat(sub.count - 1) / 2) * 15 * u), anchor: .leading)
+                        }
+                    } else {
+                        for (i, s) in sub.enumerated() { ctx.draw(T(s, 11, .semibold, 0.85), at: CGPoint(x: ctr.x, y: ctr.y + r + 13 * u + CGFloat(i + 1) * 13 * u)) }
+                    }
+                }
             }
             let battCol: Color = t.batteryPct < 20 ? .red : (t.batteryPct < 40 ? .orange : ink)
             gauge(CGPoint(x: rc.x - gOff2, y: rc.y), gr2, frac: max(0, min(1, t.throttle / 100)), color: ink, value: String(format: "%.0f", t.throttle), label: "THR %", sub: [])

@@ -309,8 +309,11 @@ struct HUDView: View {
                 ctx.stroke(arc(1), with: .color(ink.opacity(0.28)), style: StrokeStyle(lineWidth: 4 * u, lineCap: .round))
                 if frac > 0.005 { ctx.stroke(arc(min(1, frac)), with: .color(color), style: StrokeStyle(lineWidth: 4 * u, lineCap: .round)) }
                 ctx.draw(T(value, 17, .semibold), at: ctr)
-                for (i, s) in sub.enumerated() { ctx.draw(T(s, 10, .medium, 0.7), at: CGPoint(x: ctr.x, y: ctr.y + r * 0.62 + CGFloat(i) * 12 * u)) }
-                ctx.draw(T(label, 11, .bold), at: CGPoint(x: ctr.x, y: ctr.y + r + 13 * u))
+                // у малій дузі (вузьке вікно) показники V/A не вміщуються всередині: вони йдуть під підписом
+                let small = r < 36 * u
+                if !small { for (i, s) in sub.enumerated() { ctx.draw(T(s, 10, .medium, 0.7), at: CGPoint(x: ctr.x, y: ctr.y + r * 0.62 + CGFloat(i) * 12 * u)) } }
+                ctx.draw(T(label, small ? 10 : 11, .bold), at: CGPoint(x: ctr.x, y: ctr.y + r + 13 * u))
+                if small { for (i, s) in sub.enumerated() { ctx.draw(T(s, 9.5, .medium, 0.75), at: CGPoint(x: ctr.x, y: ctr.y + r + 13 * u + CGFloat(i + 1) * 12 * u)) } }
             }
             let battCol: Color = t.batteryPct < 20 ? .red : (t.batteryPct < 40 ? .orange : ink)
             gauge(CGPoint(x: rc.x - gOff2, y: rc.y), gr2, frac: max(0, min(1, t.throttle / 100)), color: ink, value: String(format: "%.0f", t.throttle), label: "THR %", sub: [])

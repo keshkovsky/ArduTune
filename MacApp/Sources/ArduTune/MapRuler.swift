@@ -41,6 +41,22 @@ final class MapRuler {
         measure()
     }
 
+    /// Перетягування точки A (0) або B (1): під час руху рахуються лише відстань і азимути, рельєф — після відпускання.
+    func drag(_ i: Int, _ c: CLLocationCoordinate2D, done: Bool) {
+        if i == 0 { a = c } else { b = c }
+        guard a != nil, b != nil else { return }
+        if done { measure(); return }
+        guard let a, let b else { return }
+        task?.cancel()
+        var r = RulerResult()
+        r.distance = CLLocation(latitude: a.latitude, longitude: a.longitude).distance(from: CLLocation(latitude: b.latitude, longitude: b.longitude))
+        r.trueAz = Self.bearing(a, b); r.backAz = Self.bearing(b, a)
+        r.declination = MagneticModel.declination(lat: a.latitude, lon: a.longitude)
+        r.magAz = (r.trueAz - r.declination + 720).truncatingRemainder(dividingBy: 360)
+        r.reliefLoading = true
+        result = r
+    }
+
     static func bearing(_ p: CLLocationCoordinate2D, _ q: CLLocationCoordinate2D) -> Double {
         let f1 = p.latitude * .pi / 180, f2 = q.latitude * .pi / 180, dl = (q.longitude - p.longitude) * .pi / 180
         let y = sin(dl) * cos(f2), x = cos(f1) * sin(f2) - sin(f1) * cos(f2) * cos(dl)
@@ -194,5 +210,17 @@ struct RulerPanel: View {
             Text(LocalizedStringKey(k)).foregroundStyle(.secondary).frame(width: 96, alignment: .leading)
             Text(LocalizedStringKey(v)).font(.system(.caption, design: .monospaced)).textSelection(.enabled)
         }
+    }
+}
+
+
+extension MKMapView {
+    /// Яка точка лінійки (0 = A, 1 = B) під курсором; p у координатах цього вʼю.
+    func rulerPin(at p: NSPoint) -> Int? {
+        for a in annotations {
+            guard let m = a as? MapPin, m.kind == "rulerA" || m.kind == "rulerB", let v = view(for: m) else { continue }
+            if convert(v.bounds, from: v).insetBy(dx: -4, dy: -4).contains(p) { return m.kind == "rulerA" ? 0 : 1 }
+        }
+        return nil
     }
 }

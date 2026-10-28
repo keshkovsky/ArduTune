@@ -207,6 +207,8 @@ final class FlightMKMapView: MKMapView {
     var onDouble: ((CLLocationCoordinate2D) -> Void)?
     var onPinContext: ((UUID, NSEvent) -> Void)?
     var flyHere = false
+    var onRulerDrag: ((Int, CLLocationCoordinate2D, Bool) -> Void)?   // (A=0/B=1, координата, завершено)
+    private var rulerIdx: Int?
     var blocked: () -> [CGRect] = { [] }               // плаваючі елементи SwiftUI над картою (у координатах карти, зверху вниз)
     private var monitor: Any?
     private var down: NSPoint?
@@ -218,7 +220,7 @@ final class FlightMKMapView: MKMapView {
         down = nil; rightHandled = false
         guard window != nil else { return }
         // MapKit споживає частину подій, тому клік (меню), ПКМ і подвійний клік ловимо локальним монітором
-        monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseUp, .rightMouseDown, .rightMouseUp]) { [weak self] e in self?.handle(e) ?? e }
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .leftMouseDragged, .leftMouseUp, .rightMouseDown, .rightMouseUp]) { [weak self] e in self?.handle(e) ?? e }
     }
     deinit { if let m = monitor { NSEvent.removeMonitor(m) } }
 
@@ -255,13 +257,19 @@ final class FlightMKMapView: MKMapView {
             if rightHandled { rightHandled = false; return nil }
             return e
         case .leftMouseDown:
-            down = nil
+            down = nil; rulerIdx = nil
             guard onMap(e) else { return e }
+            if let i = rulerPin(at: convert(e.locationInWindow, from: nil)) { rulerIdx = i; return nil }
             if e.modifierFlags.contains(.control) { rightHandled = false; openMenu(e); return nil }
             if flyHere, e.clickCount == 2 { onDouble?(coord(e.locationInWindow)); return nil }
             down = e.locationInWindow
             return e
+        case .leftMouseDragged:
+            guard let i = rulerIdx else { return e }
+            if NSEvent.pressedMouseButtons & 1 == 0 { rulerIdx = nil; return e }
+            onRulerDrag?(i, coord(e.locationInWindow), false); return nil
         case .leftMouseUp:
+            if let i = rulerIdx { rulerIdx = nil; onRulerDrag?(i, coord(e.locationInWindow), true); return nil }
             // простий клік (без перетягування) відкриває меню; із «Fly to here» меню лишається на правій кнопці
             if let d = down {
                 down = nil
@@ -307,6 +315,7 @@ struct FlightMap: NSViewRepresentable {
     var onContext: (CLLocationCoordinate2D, NSView, NSEvent) -> Void
     var onDouble: (CLLocationCoordinate2D) -> Void
     var onPinContext: (UUID, NSView, NSEvent) -> Void
+    var onRulerDrag: ((Int, CLLocationCoordinate2D, Bool) -> Void)? = nil
     var blocked: () -> [CGRect] = { [] }
 
     func makeCoordinator() -> Coord { Coord() }
@@ -328,6 +337,7 @@ struct FlightMap: NSViewRepresentable {
         m.onDouble = onDouble
         m.onPinContext = { id, e in onPinContext(id, m, e) }
         m.flyHere = flyHere
+        m.onRulerDrag = onRulerDrag
         m.blocked = blocked
         context.coordinator.ctl = ctl
         context.coordinator.apply(self, to: m)

@@ -16,6 +16,8 @@ final class MissionMKMapView: MKMapView {
     var onKey: ((NSEvent, CLLocationCoordinate2D?) -> Bool)?       // гарячі клавіші плану (true = оброблено)
     var blocked: () -> [CGRect] = { [] }                          // плаваючі елементи SwiftUI над картою (у координатах карти, зверху вниз)
     var onDrag: ((UUID, CLLocationCoordinate2D, Bool) -> Void)?   // (точка, нова координата, завершено)
+    var onRulerDrag: ((Int, CLLocationCoordinate2D, Bool) -> Void)?
+    private var rulerIdx: Int?
     private var down: NSPoint?
     private(set) var dragPin: WPPin?
     private var dragMoved = false
@@ -76,13 +78,18 @@ final class MissionMKMapView: MKMapView {
             if rightHandled { rightHandled = false; return nil }
             return e
         case .leftMouseDown:
-            dragPin = nil; down = nil           // скидаємо залишки попередніх жестів
+            dragPin = nil; down = nil; rulerIdx = nil           // скидаємо залишки попередніх жестів
+            if onMap(e, strict: false), let i = rulerPin(at: convert(e.locationInWindow, from: nil)) { rulerIdx = i; return nil }
             if let w = pin(at: e), onMap(e, strict: false) { dragPin = w; dragMoved = false; down = nil; onPinDown?(w.wid); return nil }
             guard onMap(e) else { return e }
             if e.modifierFlags.contains(.control) { onContext?(coord(e.locationInWindow), e); return nil }
             down = e.locationInWindow
             return e
         case .leftMouseDragged:
+            if let i = rulerIdx {
+                if NSEvent.pressedMouseButtons & 1 == 0 { rulerIdx = nil; return e }
+                onRulerDrag?(i, coord(e.locationInWindow), false); return nil
+            }
             guard let w = dragPin else { return e }
             if NSEvent.pressedMouseButtons & 1 == 0 { dragPin = nil; return e }
             dragMoved = true
@@ -91,6 +98,7 @@ final class MissionMKMapView: MKMapView {
             onDrag?(w.wid, c, false)
             return nil
         case .leftMouseUp:
+            if let i = rulerIdx { rulerIdx = nil; onRulerDrag?(i, coord(e.locationInWindow), true); return nil }
             if let w = dragPin {
                 if dragMoved { onDrag?(w.wid, w.coordinate, true) }
                 dragPin = nil; return nil
@@ -125,6 +133,7 @@ struct MissionMap: NSViewRepresentable {
     var rulerA: CLLocationCoordinate2D? = nil
     var rulerB: CLLocationCoordinate2D? = nil
     var rulerLabel = ""
+    var onRulerDrag: ((Int, CLLocationCoordinate2D, Bool) -> Void)? = nil
     let selected: UUID?
     let currentID: UUID?
     let reachedIDs: Set<UUID>
@@ -157,6 +166,7 @@ struct MissionMap: NSViewRepresentable {
         m.onContext = { c, e in onContext(c, m, e) }
         m.onClick = onClick
         m.onPinDown = onSelect
+        m.onRulerDrag = onRulerDrag
         m.onKey = onKey
         m.onPinContext = { id, e in onPinContext(id, m, e) }
         m.blocked = blocked

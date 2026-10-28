@@ -158,11 +158,11 @@ struct TrackerRadarButton: View {
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(active ? Color.white : Color.primary)
                 .frame(width: 32, height: 32)
-                .background(active ? Color.teal.opacity(0.9) : Color(nsColor: .windowBackgroundColor).opacity(0.7), in: Circle())
+                .background(active ? Color.teal.opacity(0.9) : Color(nsColor: .windowBackgroundColor).opacity(0.58), in: RoundedRectangle(cornerRadius: 8))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.plain).blockMap()
         .help("Антенний трекер і сектор антени")
-        .popover(isPresented: $open, arrowEdge: .leading) { TrackerQuickMenu().environment(s) }
+        .popover(isPresented: $open, arrowEdge: .bottom) { TrackerQuickMenu().environment(s) }
     }
 }
 

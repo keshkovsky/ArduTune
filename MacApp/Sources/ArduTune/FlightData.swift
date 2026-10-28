@@ -374,6 +374,7 @@ struct PlaceholderTab: View {
 
 struct MapToolbar: View {
     @Bindable var opt: MapOptions
+    let ruler: MapRuler
 
     /// Окрема плашка панелі (без розмиття: матеріал над картою мерехтить).
     private func pill<C: View>(@ViewBuilder _ c: () -> C) -> some View {
@@ -382,11 +383,29 @@ struct MapToolbar: View {
             .blockMap()
     }
 
+    /// Квадратна плашка з піктограмою (як кнопка радара).
+    private func iconPill<C: View>(@ViewBuilder _ c: () -> C) -> some View {
+        c().frame(width: 32, height: 32)
+            .background(Color(nsColor: .windowBackgroundColor).opacity(0.58), in: RoundedRectangle(cornerRadius: 8))
+            .blockMap()
+    }
+
     var body: some View {
         HStack(spacing: 8) {
-            pill { Toggle("Auto Pan", isOn: $opt.autoPan).toggleStyle(.checkbox).lineLimit(1).fixedSize() }
-            pill { Toggle("Fly to here (double-click)", isOn: $opt.flyHere).toggleStyle(.checkbox).lineLimit(1).fixedSize() }
-            pill { Toggle("Трек", isOn: $opt.showTrack).toggleStyle(.checkbox).lineLimit(1).fixedSize() }
+            TrackerRadarButton()
+            iconPill {
+                Menu {
+                    Toggle("Auto Pan", isOn: $opt.autoPan)
+                    Toggle("Fly to here (double-click)", isOn: $opt.flyHere)
+                    Toggle("Трек", isOn: $opt.showTrack)
+                } label: { Image(systemName: "slider.horizontal.3").font(.system(size: 14, weight: .semibold)) }
+                    .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().help("Параметри карти: Auto Pan, Fly to here, Трек")
+            }
+            iconPill {
+                Button { ruler.active.toggle(); ruler.clear() } label: {
+                    Image(systemName: "ruler").font(.system(size: 14, weight: .semibold)).foregroundStyle(ruler.active ? Color.accentColor : Color.primary)
+                }.buttonStyle(.plain).help("Лінійка: клікніть по карті двічі (точки можна перетягувати)")
+            }
             Spacer(minLength: 8)
             pill {
                 Menu {
@@ -425,6 +444,7 @@ struct MapPanel: View {
     @State private var centered = false
     @State private var blockBox = BlockBox()
     @AppStorage("cam.fov") private var fov = 60.0
+    @AppStorage("units.coord") private var coordKind = "deg"
     private var front: FrontLine { FrontLine.shared }
 
     var body: some View {
@@ -457,13 +477,14 @@ struct MapPanel: View {
             onContext: { c, v, e in showMenu(at: c, view: v, event: e) },
             onDouble: { c in flyTo(c, alt: nil) },
             onPinContext: { id, v, e in MissionOps(s: s).pinMenu(id: id, view: v, event: e, editable: false, openInMission: { s.navigate = "Mission" }) },
+            onRulerDrag: { i, c, done in s.mission.ruler.drag(i, c, done: done) },
             blocked: { [blockBox] in blockBox.rects })
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(alignment: .top) { toolbar }
         .overlay(alignment: .trailing) { MapControls(ctl: ctl).blockMap().padding(.trailing, 10) }
-        .overlay(alignment: .topTrailing) { TrackerRadarButton().blockMap().padding(.top, 52).padding(.trailing, 10) }
         .background(AddonKeyCatcher { e in trk.handleKey(e, s, station: trk.station(s, home: homeC)) })
         .onAppear { trk.start(s) }
+        .onDisappear { s.mission.ruler.active = false }
         .overlay(alignment: .top) {
             if let f = s.mission.following {
                 HStack(spacing: 8) {
@@ -492,16 +513,23 @@ struct MapPanel: View {
         }
     }
 
-    var toolbar: some View { MapToolbar(opt: opt) }
+    var toolbar: some View { MapToolbar(opt: opt, ruler: s.mission.ruler) }
 
     var bottomBar: some View {
         HStack(spacing: 14) {
-            Text(Coords.pair(s.t.lat, s.t.lon, decimals: 7, sep: "  ")).font(.system(.caption, design: .monospaced))
+            Menu {
+                Picker("", selection: $coordKind) {
+                    Text("Градуси").tag("deg"); Text("Г°М'С\"").tag("dms"); Text("MGRS").tag("mgrs")
+                }.pickerStyle(.inline).labelsHidden()
+            } label: {
+                Text(Coords.pair(s.t.lat, s.t.lon, decimals: 7, sep: "  ")).font(.system(.caption, design: .monospaced))
+            }
+            .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().help("Формат координат: натисніть, щоб змінити")
             Text(String(format: loc("%.1f м"), s.t.altRel)).font(.system(.caption, design: .monospaced))
             if let n = note { Text(LocalizedStringKey(n)).font(.caption).foregroundStyle(.orange).lineLimit(1) }
             Spacer()
-            Button("Clear Track") { s.track.removeAll() }.controlSize(.small)
-            Button("До дрона") { centerOnVehicle() }.controlSize(.small)
+            Button { s.track.removeAll() } label: { Image(systemName: "eraser") }.controlSize(.small).help("Clear Track")
+            Button { centerOnVehicle() } label: { Image(systemName: "scope") }.controlSize(.small).help("До дрона")
         }
         .padding(.horizontal, 10).padding(.vertical, 6)
         .background(.regularMaterial)

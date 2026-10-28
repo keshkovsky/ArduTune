@@ -222,6 +222,7 @@ struct MissionMapHost: View {
             vehicle: simCur.map { m.sim.coord($0) } ?? (fix ? .init(latitude: s.t.lat, longitude: s.t.lon) : nil), vehicleHeading: simCur != nil ? m.sim.headingDeg : s.t.heading,
             rays: simCur != nil ? nil : (fix ? RayData.current(yaw: s.t.yaw, magHdg: s.t.magHdg, cog: s.t.cog, speed: s.t.groundSpeed, rays: opt.rays) : nil),
             rulerA: m.ruler.a, rulerB: m.ruler.b, rulerLabel: m.ruler.result.map { RulerLayer.distanceText($0.distance) + "  ·  " + String(format: "%03.0f°", $0.trueAz) } ?? "",
+            onRulerDrag: { i, c, done in m.ruler.drag(i, c, done: done) },
             selected: m.selected, currentID: m.section == .route ? curItem?.id : nil, reachedIDs: m.section == .route ? reached : [],
             front: opt.front ? front.polys : [], frontVersion: opt.front ? front.version : 0, simTrack: m.sim.track, simVer: m.sim.version, simDanger: m.sim.enabled ? m.sim.dangerSegs : [],
             onSelect: { id in
@@ -273,23 +274,24 @@ struct MissionToolbar: View {
         .padding(8)
     }
 
+    /// Піктограма режиму інструмента з підказкою при наведенні.
+    func modeButton(_ icon: String, _ help: String, on: Bool, _ action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon).font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(on ? Color.white : Color.primary)
+                .frame(width: 30, height: 24)
+                .background(on ? Color.accentColor : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+        }.buttonStyle(.plain).help(LocalizedStringKey(help))
+    }
+
     func row(compact: Bool) -> some View {
         HStack(spacing: 8) {
             if !m.view3D {     // у 3D ці інструменти не діють: не займають місце
-                Picker("", selection: Binding(get: { m.ruler.active ? 2 : (m.addMode ? 1 : 0) }, set: { v in
-                    m.ruler.active = v == 2
-                    if v == 2 { m.addMode = false } else { m.addMode = v == 1; m.ruler.clear() }
-                })) {
-                    if compact {
-                        Image(systemName: "cursorarrow").tag(0).help("Вибір")
-                        Image(systemName: "plus.circle").tag(1).help("Додавання")
-                        Image(systemName: "ruler").tag(2).help("Лінійка")
-                    } else {
-                        Label("Вибір", systemImage: "cursorarrow").tag(0)
-                        Label("Додавання", systemImage: "plus.circle").tag(1)
-                        Label("Лінійка", systemImage: "ruler").tag(2)
-                    }
-                }.pickerStyle(.segmented).labelsHidden().frame(width: compact ? 120 : 290)
+                HStack(spacing: 2) {
+                    modeButton("hand.point.up.left.fill", "Вибір", on: !m.ruler.active && !m.addMode) { m.ruler.active = false; m.addMode = false; m.ruler.clear() }
+                    modeButton("plus.circle", "Додавання", on: m.addMode) { m.ruler.active = false; m.addMode = true; m.ruler.clear() }
+                    modeButton("ruler", "Лінійка", on: m.ruler.active) { m.ruler.active = true; m.addMode = false }
+                }
                 Menu {
                     ForEach(Self.tools(m.section), id: \.self) { id in
                         Button { m.tool = id; m.addMode = true } label: { Label(lk(Self.name(id).prefix(1).uppercased() + Self.name(id).dropFirst()), systemImage: Self.icon(id)) }

@@ -175,7 +175,7 @@ struct SettingsView: View {
             }
             Divider().opacity(0.4)
             row("Координати", "Формат координат у Flight Data та Mission: десяткові градуси або MGRS (військова сітка, WGS84). Редактор точок і файли місій лишаються в градусах.") {
-                Picker("", selection: $uCoord) { Text("Градуси").tag("deg"); Text("MGRS").tag("mgrs") }.pickerStyle(.segmented).labelsHidden().frame(width: 200)
+                Picker("", selection: $uCoord) { Text("Градуси").tag("deg"); Text("Г°М'С\"").tag("dms"); Text("MGRS").tag("mgrs") }.pickerStyle(.segmented).labelsHidden().frame(width: 260)
             }
             Divider().opacity(0.4)
             HStack(spacing: 10) {

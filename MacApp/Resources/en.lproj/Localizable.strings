@@ -3758,3 +3758,7 @@
 "Малювати маркери й лінії на мапі Flight Data та додавати пункти в її меню." = "Draw markers and lines on the Flight Data map and add items to its menu.";
 "HTTP: некоректний URL" = "HTTP: invalid URL";
 "HTTP: до інтернету дозволено лише HTTPS і не на локальні адреси" = "HTTP: only HTTPS is allowed for the internet, and not to local addresses";
+"Параметри карти: Auto Pan, Fly to here, Трек" = "Map options: Auto Pan, Fly to here, Track";
+"Лінійка: клікніть по карті двічі (точки можна перетягувати)" = "Ruler: click the map twice (points can be dragged)";
+"Формат координат: натисніть, щоб змінити" = "Coordinate format: click to change";
+"Г°М'С\"" = "D°M'S\"";

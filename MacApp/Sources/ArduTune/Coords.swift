@@ -7,7 +7,14 @@ enum Coords {
     /// Пара координат для показу: «lat, lon» з заданою кількістю знаків або MGRS (поза 80°S…84°N: десяткові).
     static func pair(_ lat: Double, _ lon: Double, decimals: Int = 6, sep: String = ", ") -> String {
         if isMGRS, let m = mgrs(lat, lon) { return m }
+        if UserDefaults.standard.string(forKey: "units.coord") == "dms" { return dms(lat, true) + " " + dms(lon, false) }
         return String(format: "%.\(decimals)f", lat) + sep + String(format: "%.\(decimals)f", lon)
+    }
+
+    /// 50°27'00.36"N
+    static func dms(_ v: Double, _ isLat: Bool) -> String {
+        let a = abs(v), d = Int(a), m = Int((a - Double(d)) * 60), s = (a - Double(d) - Double(m) / 60) * 3600
+        return String(format: "%d°%02d'%05.2f\"", d, m, s) + (isLat ? (v < 0 ? "S" : "N") : (v < 0 ? "W" : "E"))
     }
 
     // MARK: WGS84 ↔ UTM (ряди Крюгера)

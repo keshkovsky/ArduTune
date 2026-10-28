@@ -151,6 +151,7 @@ struct MissionPage: View {
             }
         }
         if f == [.command, .shift], key == "z" { m.redo(); return true }
+        if f.isEmpty, e.keyCode == 53, m.ruler.active || m.ruler.a != nil { m.ruler.active = false; m.ruler.clear(); return true }   // Esc закриває лінійку
         if f.isEmpty, e.keyCode == 51 || e.keyCode == 117 { return m.deleteSelected() }       // Backspace / Delete
         return false
     }

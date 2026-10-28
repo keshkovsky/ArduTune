@@ -482,7 +482,10 @@ struct MapPanel: View {
         .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(alignment: .top) { toolbar }
         .overlay(alignment: .trailing) { MapControls(ctl: ctl).blockMap().padding(.trailing, 10) }
-        .background(AddonKeyCatcher { e in trk.handleKey(e, s, station: trk.station(s, home: homeC)) })
+        .background(AddonKeyCatcher { e in
+            if e.keyCode == 53, s.mission.ruler.active || s.mission.ruler.a != nil { s.mission.ruler.active = false; s.mission.ruler.clear(); return true }   // Esc закриває лінійку
+            return trk.handleKey(e, s, station: trk.station(s, home: homeC))
+        })
         .onAppear { trk.start(s) }
         .onDisappear { s.mission.ruler.active = false }
         .overlay(alignment: .top) {

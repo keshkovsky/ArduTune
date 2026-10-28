@@ -344,7 +344,7 @@ struct MissionToolbar: View {
                     if !compact { Text("м").foregroundStyle(.secondary) }
                 }.help("Висота нових точок, м")
             }
-            HStack(spacing: 6) {
+            HStack(spacing: 4) {
                 Button { m.undo() } label: { Image(systemName: "arrow.uturn.backward").font(.system(size: 14, weight: .medium)).foregroundStyle(Color.primary).frame(width: 30, height: 26).contentShape(Rectangle()) }.help("Скасувати (⌘Z)")
                 Button { m.redo() } label: { Image(systemName: "arrow.uturn.forward").font(.system(size: 14, weight: .medium)).foregroundStyle(Color.primary).frame(width: 30, height: 26).contentShape(Rectangle()) }.help("Повторити (⇧⌘Z)")
             }.buttonStyle(.plain)

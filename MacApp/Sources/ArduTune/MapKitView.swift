@@ -450,9 +450,8 @@ struct FlightMap: NSViewRepresentable {
                 for r in p.route { let a = RPin(); a.wid = r.id; a.cmd = r.cmd; a.title = r.label; a.coordinate = .init(latitude: r.lat, longitude: r.lon); routePins.append(a) }
                 m.addAnnotations(routePins)
                 if p.routePath.count > 1 {
-                    let bg = MKPolyline(coordinates: p.routePath, count: p.routePath.count); bg.title = "rpathBG"
                     let l = MKPolyline(coordinates: p.routePath, count: p.routePath.count); l.title = "rpath"
-                    routeOv = [bg, l]; for o in routeOv { m.addOverlay(o, level: .aboveLabels) }
+                    routeOv = [l]; for o in routeOv { m.addOverlay(o, level: .aboveLabels) }
                 }
             }
             curRoute = p.routeCurrent
@@ -589,8 +588,8 @@ struct FlightMap: NSViewRepresentable {
             if let l = o as? MKPolyline {
                 let r = MKPolylineRenderer(polyline: l)
                 if l.title == "rpath" || l.title == "rpathBG" {
-                    r.strokeColor = l.title == "rpath" ? NSColor.systemYellow.withAlphaComponent(0.55) : NSColor.black.withAlphaComponent(0.18)
-                    r.lineWidth = l.title == "rpath" ? 2.5 : 5; r.lineDashPattern = [7, 7]; r.lineCap = .round; r.lineJoin = .round
+                    r.strokeColor = l.title == "rpath" ? NSColor.systemYellow.withAlphaComponent(0.7) : NSColor.clear
+                    r.lineWidth = l.title == "rpath" ? 1.2 : 0; r.lineDashPattern = [6, 6]; r.lineCap = .round; r.lineJoin = .round
                     return r
                 }
                 if l.title == "ruler" { r.strokeColor = .white; r.lineWidth = 2.5; r.lineDashPattern = [8, 5]; r.lineCap = .round; return r }

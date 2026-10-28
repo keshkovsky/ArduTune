@@ -347,9 +347,8 @@ struct MissionMap: NSViewRepresentable {
         var dim = false
         static func pathOverlays(_ path: [CLLocationCoordinate2D]) -> [MKOverlay] {
             guard path.count > 1 else { return [] }
-            let bg = MKPolyline(coordinates: path, count: path.count); bg.title = "pathBG"
             let l = MKPolyline(coordinates: path, count: path.count); l.title = "path"
-            return [bg, l]
+            return [l]
         }
         func pathRenderers() -> [MKOverlayRenderer]? { pathOv.compactMap { map?.renderer(for: $0) } }
 
@@ -426,7 +425,7 @@ struct MissionMap: NSViewRepresentable {
                 case "simDanger": r.strokeColor = NSColor.systemRed; r.lineWidth = 4.5
                 case "simTrack": r.strokeColor = NSColor.systemPink.withAlphaComponent(0.85); r.lineWidth = 2.5
                 case "leg": r.strokeColor = .systemGreen; r.lineWidth = 2.5; r.lineDashPattern = [6, 5]
-                default: r.strokeColor = NSColor.systemYellow.withAlphaComponent(0.55); r.lineWidth = 2.5; r.lineDashPattern = [7, 7]
+                default: r.strokeColor = NSColor.systemYellow.withAlphaComponent(0.7); r.lineWidth = 1.2; r.lineDashPattern = [6, 6]
                 }
                 r.lineCap = .round; r.lineJoin = .round
                 if dim, l.title == "path" || l.title == "pathBG" { r.alpha = 0.3 }

@@ -84,7 +84,7 @@ struct FlightView: View {
             if s.video.showInHUD && s.video.running {
                 VideoSurface(video: s.video, t: s.t).clipShape(RoundedRectangle(cornerRadius: 10))
             }
-            HUDView(t: s.t, navSource: navSource, alerts: fs.alerts, config: hudConfig)
+            HUDView(t: s.t, navSource: navSource, alerts: fs.alerts, config: hudConfig, onOpenVideo: { openWindow(id: "video") })
         }
         .modifier(AspectModifier(ratio: aspectRatio))
         .overlay { RightClickCatcher { _, view, event in showHUDMenu(view: view, event: event) } }
@@ -146,7 +146,6 @@ struct FlightView: View {
         let mb = MenuBuilder()
         mb.submenu("Video") { m in
             mb.item("Показувати відео на HUD", enabled: v.running, checked: v.showInHUD, to: m) { v.showInHUD.toggle() }
-            mb.item("Відкрити відео у вікні", to: m) { openWindow(id: "video") }
             mb.separator(m)
             if v.cameras.isEmpty { mb.item("Камер не знайдено", enabled: false, to: m) }
             for cam in v.cameras {

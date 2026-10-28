@@ -8,6 +8,22 @@ final class TipWindow {
     static let shared = TipWindow()
     private var panel: NSPanel?
     private var work: DispatchWorkItem?
+    private var menuOpen = false
+    private var monitor: Any?
+
+    init() {
+        // клік, клавіша чи відкрите меню ховають підказку (вона не повинна перекривати меню)
+        monitor = NSEvent.addLocalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown, .otherMouseDown, .keyDown, .scrollWheel]) { [weak self] e in
+            MainActor.assumeIsolated { self?.cancel() }
+            return e
+        }
+        NotificationCenter.default.addObserver(forName: NSMenu.didBeginTrackingNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.menuOpen = true; self?.cancel() }
+        }
+        NotificationCenter.default.addObserver(forName: NSMenu.didEndTrackingNotification, object: nil, queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.menuOpen = false }
+        }
+    }
 
     func schedule(_ text: String, delay: Double = 0.45) {
         cancel()
@@ -19,6 +35,7 @@ final class TipWindow {
     func cancel() { work?.cancel(); work = nil; panel?.orderOut(nil) }
 
     private func show(_ text: String) {
+        guard !menuOpen else { return }
         let label = NSTextField(wrappingLabelWithString: text)
         label.font = .systemFont(ofSize: 11)
         label.textColor = .labelColor
@@ -33,7 +50,7 @@ final class TipWindow {
         bg.addSubview(label)
         let p = panel ?? NSPanel(contentRect: NSRect(origin: .zero, size: box), styleMask: [.borderless, .nonactivatingPanel], backing: .buffered, defer: true)
         p.isOpaque = false; p.backgroundColor = .clear; p.hasShadow = true; p.ignoresMouseEvents = true
-        p.level = .popUpMenu; p.collectionBehavior = [.canJoinAllSpaces, .transient]
+        p.level = .floating; p.collectionBehavior = [.canJoinAllSpaces, .transient]
         p.contentView = bg
         let m = NSEvent.mouseLocation
         var o = NSPoint(x: m.x + 6, y: m.y - box.height - 20)

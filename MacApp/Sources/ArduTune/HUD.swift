@@ -15,7 +15,7 @@ struct HUDConfig {
     static let elements: [(String, String)] = [
         ("compass", "Компасна стрічка"), ("speed", "Стрічка швидкості"), ("alt", "Стрічка висоти"),
         ("pitch", "Сходи тангажа"), ("bank", "Шкала крену"),
-        ("battery", "Батарея"), ("gps", "GPS"), ("mode", "Режим польоту"), ("status", "ARMED / DISARMED"), ("wp", "Відстань до WP"),
+        ("battery", "Батарея"), ("gps", "GPS"), ("mode", "Режим польоту"), ("status", "ARMED / DISARMED"),
     ]
     /// Типовий набір User Items (текстові параметри зліва на HUD).
     static let defaultUser = "alt,throttle,navpitch,navroll,pitch,roll,vibex,vibey,vibez,yaw"
@@ -50,6 +50,7 @@ struct HUDView: View {
     var navSource: NavSource = .gps
     var alerts: [Alert] = []
     var config = HUDConfig()
+    var onOpenVideo: (() -> Void)? = nil          // кнопка «HUD з відео в окремому вікні» (лівий нижній кут)
     private func show(_ k: String) -> Bool { !config.hidden.contains(k) }
     /// Рядки User Items у порядку вибору: «Назва: значення». Назву можна перейменувати (config.userNames).
     private func userLines() -> [String] {
@@ -130,6 +131,8 @@ struct HUDView: View {
             let th = config.theme
             let ink = th.ink, accent = th.accent
             let wide = (c.x - gOff - gr > 108 * u) && h > 360          // дуги THR/BATT вміщуються між стрічками
+            let gr2 = wide ? gr : gr * 0.82
+            let gOff2 = wide ? gOff : max(Rr + gr2 + 6 * u, min(gOff, c.x - gr2 - 8 * u))      // у вузькому вікні дуги ближче до компаса
             let textWide = w > 600 * u                                 // текст стоїть поряд зі стрічкою швидкості
             let userL = userLines()
             let roseTop = show("compass") ? rc.y - Rr - 32 * u : h - 10 * u
@@ -310,25 +313,14 @@ struct HUDView: View {
                 ctx.draw(T(label, 11, .bold), at: CGPoint(x: ctr.x, y: ctr.y + r + 13 * u))
             }
             let battCol: Color = t.batteryPct < 20 ? .red : (t.batteryPct < 40 ? .orange : ink)
-            if wide {
-                gauge(CGPoint(x: rc.x - gOff, y: rc.y), gr, frac: max(0, min(1, t.throttle / 100)), color: ink, value: String(format: "%.0f", t.throttle), label: "THR %", sub: [])
-                if show("battery") {
-                    gauge(CGPoint(x: rc.x + gOff, y: rc.y), gr, frac: Double(max(0, min(100, t.batteryPct))) / 100, color: battCol, value: "\(max(0, t.batteryPct))",
-                          label: "BATT %", sub: [String(format: "%.2f V", t.batteryV), String(format: "%.1f A", t.batteryA)])
-                    if config.cellVoltage {
-                        let cells = max(1, Int(ceil(t.batteryV / 4.3)))
-                        ctx.draw(T(String(format: "%.2fV/cell (%dS)", t.batteryV / Double(cells), cells), 11, .medium, 1, .yellow), at: CGPoint(x: rc.x + gOff, y: rc.y - gr - 14 * u))
-                    }
+            gauge(CGPoint(x: rc.x - gOff2, y: rc.y), gr2, frac: max(0, min(1, t.throttle / 100)), color: ink, value: String(format: "%.0f", t.throttle), label: "THR %", sub: [])
+            if show("battery") {
+                gauge(CGPoint(x: rc.x + gOff2, y: rc.y), gr2, frac: Double(max(0, min(100, t.batteryPct))) / 100, color: battCol, value: "\(max(0, t.batteryPct))",
+                      label: "BATT %", sub: [String(format: "%.2f V", t.batteryV), String(format: "%.1f A", t.batteryA)])
+                if config.cellVoltage {
+                    let cells = max(1, Int(ceil(t.batteryV / 4.3)))
+                    ctx.draw(T(String(format: "%.2fV/cell (%dS)", t.batteryV / Double(cells), cells), 11, .medium, 1, .yellow), at: CGPoint(x: rc.x + gOff2, y: rc.y - gr2 - 14 * u))
                 }
-            } else if show("battery") {
-                // Компактний режим: батарея текстом
-                let bx: CGFloat = 12 * u, by = h - 72 * u
-                ctx.stroke(Path(roundedRect: CGRect(x: bx, y: by, width: 20 * u, height: 36 * u), cornerRadius: 3), with: .color(battCol), lineWidth: 2)
-                let frac = CGFloat(max(0, min(100, t.batteryPct))) / 100
-                ctx.fill(Path(CGRect(x: bx + 2, y: by + 2 + 32 * u * (1 - frac), width: 16 * u, height: 32 * u * frac)), with: .color(battCol))
-                ctx.draw(T(String(format: "%.2fV", t.batteryV), 12, .bold), at: CGPoint(x: bx + 28 * u, y: by + 6 * u), anchor: .leading)
-                ctx.draw(T(String(format: "%.1fA", t.batteryA), 12, .bold), at: CGPoint(x: bx + 28 * u, y: by + 20 * u), anchor: .leading)
-                ctx.draw(T("\(max(0, t.batteryPct))%", 12, .bold), at: CGPoint(x: bx + 28 * u, y: by + 34 * u), anchor: .leading)
             }
 
             // --- Текстові оверлеї (User Items) ---
@@ -358,7 +350,7 @@ struct HUDView: View {
                 let r = ctx.resolve(Text(LocalizedStringKey(al.0)).font(.system(size: 12.5 * min(u, 1), weight: .semibold)).foregroundColor(.white))
                 chips.append((al.0, al.1, r, r.measure(in: CGSize(width: w - 80, height: 30))))
             }
-            let reserve: CGFloat = max(show("wp") ? 100 * u : 24, 150)      // ліворуч унизу «WP ▸ …», праворуч чіпи EKF/VIBE
+            let reserve: CGFloat = 150      // ліворуч кнопка вікна, праворуч чіпи EKF/VIBE
             let avail = max(80, w - 2 * reserve)
             var shown: [(String, Bool, GraphicsContext.ResolvedText, CGSize)] = []
             var used: CGFloat = 0
@@ -379,7 +371,15 @@ struct HUDView: View {
                 ctx.draw(ch.2, at: CGPoint(x: box.minX + 30 + ch.3.width / 2, y: yRow))
                 x += bw + 6
             }
-            if show("wp") { ctx.draw(T(String(format: "WP ▸ %.0f m", t.wpDist), 11, .medium, 0.9), at: CGPoint(x: 12 * u, y: h - 12 * u), anchor: .leading) }
+        }
+        .overlay(alignment: .bottomLeading) {
+            if let open = onOpenVideo {
+                Button(action: open) {
+                    Image(systemName: "rectangle.on.rectangle").font(.system(size: 12, weight: .semibold)).foregroundStyle(.white)
+                        .frame(width: 26, height: 22).background(.ultraThinMaterial.opacity(0.9), in: RoundedRectangle(cornerRadius: 6))
+                        .background(Color.black.opacity(0.28), in: RoundedRectangle(cornerRadius: 6))
+                }.buttonStyle(.plain).tip("Відкрити HUD з відео в окремому вікні").padding(8)
+            }
         }
         .overlay(alignment: .topTrailing) { if show("gps") { NavStatusChip(t: t, source: navSource).scaleEffect(config.scale, anchor: .topTrailing).padding(10) } }
         .overlay(alignment: .bottomTrailing) {

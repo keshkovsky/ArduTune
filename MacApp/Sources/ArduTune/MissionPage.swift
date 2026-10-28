@@ -15,6 +15,7 @@ struct MissionPage: View {
     @AppStorage("mission.profile.show") private var profShow = true
     @AppStorage("mission.profile.h") private var profH = 116.0
     @State private var profDrag: Double?
+    @State private var profBase: Double?
     private var front: FrontLine { FrontLine.shared }
 
     var body: some View {
@@ -74,7 +75,7 @@ struct MissionPage: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .padding([.top, .leading, .trailing], 8)
                 profileBar
-                if profShow { MissionProfile(m: m).frame(height: profDrag ?? profH).padding(.horizontal, 8).padding(.bottom, 6) }
+                if (profDrag ?? (profShow ? profH : 0)) > 0 { MissionProfile(m: m).frame(height: profDrag ?? profH).padding(.horizontal, 8).padding(.bottom, 6) }
             }
             Divider()
             MissionInspector(m: m).frame(width: 350)
@@ -140,29 +141,32 @@ struct MissionPage: View {
         mb.show(for: view, event: event)
     }
 
-    /// Смужка над профілем висоти: перетягніть, щоб змінити висоту; стрілка ховає й показує профіль.
+    /// Смужка над профілем висоти: тягніть вгору/вниз; у крайньому нижньому положенні профіль згортається, потягнувши назад — розгортається.
+    /// Подвійний клік згортає профіль або розгортає до середнього розміру.
     var profileBar: some View {
-        HStack(spacing: 8) {
-            Button { withAnimation(.snappy(duration: 0.2)) { profShow.toggle() } } label: {
-                Image(systemName: profShow ? "chevron.down" : "chevron.up").font(.system(size: 10, weight: .bold)).frame(width: 22, height: 14)
-            }.buttonStyle(.plain).help(profShow ? "Сховати профіль висоти" : "Показати профіль висоти")
-            if !profShow { Text("Профіль висоти").font(.caption).foregroundStyle(.secondary) }
-            Spacer()
-            if profShow {
-                Capsule().fill(Color.secondary.opacity(0.45)).frame(width: 44, height: 4)
-                    .padding(.vertical, 5).contentShape(Rectangle()).help("Потягніть, щоб змінити висоту профілю")
-                    .onHover { if $0 { NSCursor.resizeUpDown.push() } else { NSCursor.pop() } }
-                    .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
-                        .onChanged { g in profDrag = min(420, max(70, profH - g.translation.height)) }
-                        .onEnded { g in profH = min(420, max(70, profH - g.translation.height)); profDrag = nil })
-            }
-            Spacer()
-            if profShow {
-                Button { profH = 116 } label: { Image(systemName: "arrow.up.and.down.text.horizontal") }.buttonStyle(.plain).help("Типова висота")
-            }
+        ZStack {
+            RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.16))
+            Capsule().fill(Color.secondary.opacity(0.85)).frame(width: 90, height: 5)
         }
-        .padding(.horizontal, 12).frame(height: 18)
+        .frame(height: 18).padding(.horizontal, 8)
+        .contentShape(Rectangle())
+        .help("Потягніть, щоб змінити розмір профілю. У нижньому положенні він згортається. Подвійний клік: згорнути чи розгорнути")
+        .onHover { if $0 { NSCursor.resizeUpDown.push() } else { NSCursor.pop() } }
+        .onTapGesture(count: 2) { withAnimation(.snappy(duration: 0.2)) { if profShow { profShow = false } else { profShow = true; profH = Self.profMid } } }
+        .gesture(DragGesture(minimumDistance: 2, coordinateSpace: .global)
+            .onChanged { g in
+                if profBase == nil { profBase = profShow ? profH : 0 }
+                profDrag = Self.profClamp((profBase ?? 0) - g.translation.height)
+            }
+            .onEnded { g in
+                let v = Self.profClamp((profBase ?? 0) - g.translation.height)
+                if v < 1 { profShow = false } else { profShow = true; profH = v }
+                profDrag = nil; profBase = nil
+            })
     }
+    static let profMid = 180.0
+    /// Висота профілю за перетягуванням: нижче 40 — згорнуто (0), інакше 70…420.
+    static func profClamp(_ v: Double) -> Double { v < 40 ? 0 : min(420, max(70, v)) }
 
     /// Гарячі клавіші плану: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, Delete.
     func handleKey(_ e: NSEvent, cursor: CLLocationCoordinate2D?) -> Bool {

@@ -344,10 +344,10 @@ struct MissionToolbar: View {
                     if !compact { Text("м").foregroundStyle(.secondary) }
                 }.help("Висота нових точок, м")
             }
-            HStack(spacing: 2) {
-                Button { m.undo() } label: { Image(systemName: "arrow.uturn.backward") }.help("Скасувати (⌘Z)")
-                Button { m.redo() } label: { Image(systemName: "arrow.uturn.forward") }.help("Повторити (⇧⌘Z)")
-            }.buttonStyle(.borderless)
+            HStack(spacing: 6) {
+                Button { m.undo() } label: { Image(systemName: "arrow.uturn.backward").font(.system(size: 14, weight: .medium)).foregroundStyle(Color.primary).frame(width: 30, height: 26).contentShape(Rectangle()) }.help("Скасувати (⌘Z)")
+                Button { m.redo() } label: { Image(systemName: "arrow.uturn.forward").font(.system(size: 14, weight: .medium)).foregroundStyle(Color.primary).frame(width: 30, height: 26).contentShape(Rectangle()) }.help("Повторити (⇧⌘Z)")
+            }.buttonStyle(.plain)
             Menu {
                 ForEach(MapLayer.groups, id: \.0) { g in
                     Section(lk(g.0)) { ForEach(g.1) { l in Button { opt.layer = l } label: { if opt.layer == l { Label(LocalizedStringKey(l.title), systemImage: "checkmark") } else { Text(LocalizedStringKey(l.title)) } } } }

@@ -179,7 +179,7 @@ struct RulerPanel: View {
                 HStack {
                     Label("Лінійка", systemImage: "ruler").font(.caption.weight(.semibold))
                     Spacer()
-                    Button { ruler.clear() } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.buttonStyle(.plain).help("Прибрати лінійку")
+                    Button { ruler.clear() } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.buttonStyle(.plain).tip("Прибрати лінійку")
                 }
                 row("Відстань", RulerLayer.distanceText(r.distance) + (r.distance >= 1000 && Units.distKey == "m" ? String(format: loc(" (%.0f м)"), r.distance) : ""))
                 row("Азимут істинний", String(format: "%05.1f°", r.trueAz) + String(format: loc("  (зворотний %05.1f°)"), r.backAz))

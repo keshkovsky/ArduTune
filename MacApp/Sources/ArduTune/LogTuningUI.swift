@@ -58,7 +58,7 @@ struct ChangesBlock: View {
                         Label("записано", systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(.green)
                     } else {
                         Button("Застосувати") { apply(c) }.controlSize(.small).disabled(!canWrite || !exists || new == nil)
-                            .help(lk(!s.connected ? "Підключіть польотник, щоб записати значення" : (s.armedLive ? "Апарат ARMED" : (!exists ? "У цій прошивці немає такого параметра" : "Записати нове значення в польотник"))))
+                            .tip(!s.connected ? "Підключіть польотник, щоб записати значення" : (s.armedLive ? "Апарат ARMED" : (!exists ? "У цій прошивці немає такого параметра" : "Записати нове значення в польотник")))
                     }
                 }
                 .padding(8).background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 8, style: .continuous))

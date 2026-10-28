@@ -132,9 +132,9 @@ struct MavFtpView: View {
     // MARK: Панель
     var toolbar: some View {
         HStack(spacing: 8) {
-            Button { Task { await m.back() } } label: { Image(systemName: "chevron.left") }.disabled(m.history.isEmpty).help("Назад")
-            Button { if let p = m.parent { Task { await m.open(p) } } } label: { Image(systemName: "arrow.up") }.disabled(m.parent == nil).help("На рівень вище")
-            Button { Task { await m.refresh() } } label: { Image(systemName: "arrow.clockwise") }.help("Оновити")
+            Button { Task { await m.back() } } label: { Image(systemName: "chevron.left") }.disabled(m.history.isEmpty).tip("Назад")
+            Button { if let p = m.parent { Task { await m.open(p) } } } label: { Image(systemName: "arrow.up") }.disabled(m.parent == nil).tip("На рівень вище")
+            Button { Task { await m.refresh() } } label: { Image(systemName: "arrow.clockwise") }.tip("Оновити")
             TextField("Шлях", text: $pathText).textFieldStyle(.roundedBorder).font(.system(.body, design: .monospaced))
                 .onSubmit { Task { await m.open(pathText.isEmpty ? "/" : pathText) } }
             Divider().frame(height: 18)

@@ -403,7 +403,7 @@ struct HUDView: View {
             .background(Color.black.opacity(0.28), in: Capsule())
         }
         .buttonStyle(.plain)
-        .help(lk(id == "ekf" ? "Відкрити EKF Status" : "Відкрити Vibration"))
+        .tip(id == "ekf" ? "Відкрити EKF Status" : "Відкрити Vibration")
     }
 }
 

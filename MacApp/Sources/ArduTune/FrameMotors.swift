@@ -111,7 +111,7 @@ struct FrameMotorsView: View {
                                 ForEach(outputs, id: \.self) { o in Text("SERVO\(o)").tag(o) }
                             }
                             .labelsHidden().frame(width: 130).disabled(s.armed)
-                            .help("Вихід серво для мотора M\(m.n). Якщо вихід зайнятий, функції міняються місцями.")
+                            .tip("Вихід серво для мотора M\(m.n). Якщо вихід зайнятий, функції міняються місцями.")
                             Button("Тест \(letter(m.o))") { run(m) }
                                 .disabled(s.armed || !s.connected)
                         }
@@ -139,7 +139,7 @@ struct FrameMotorsView: View {
             HStack {
                 ForEach(motors) { m in
                     Button("\(letter(m.o))") { run(m) }.buttonStyle(.borderedProminent).tint(m.y > 0 ? .orange : .teal)
-                        .help("Мотор M\(m.n)")
+                        .tip("Мотор M\(m.n)")
                 }
                 Divider().frame(height: 20)
                 Button("Усі по черзі") {

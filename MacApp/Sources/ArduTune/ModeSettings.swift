@@ -134,7 +134,7 @@ struct AdvParamRow: View {
             }
         }
         .padding(.vertical, describe ? 6 : 3)
-        .help(lk(helpText(m)))
+        .tip(helpText(m))
     }
 
     func helpText(_ m: ParamMeta?) -> String {
@@ -212,7 +212,7 @@ struct ModeAdvancedCard: View {
             if let t = text { Text(LocalizedStringKey(t)).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .help(lk(helpText(m)))
+        .tip(helpText(m))
     }
 
     var body: some View {

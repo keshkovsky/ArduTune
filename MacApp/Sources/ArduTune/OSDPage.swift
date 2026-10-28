@@ -243,14 +243,14 @@ struct OSDView: View {
                 Text(LocalizedStringKey(format.name)).font(.caption).foregroundStyle(.secondary)
             }
             HStack(spacing: 14) {
-                Toggle("Показувати назви", isOn: $showNames).toggleStyle(.checkbox).help("Замість прикладу значення показувати назву елемента (як у Mission Planner)")
-                Toggle("Зменшити", isOn: $compact).toggleStyle(.checkbox).help("Менший перегляд макета")
+                Toggle("Показувати назви", isOn: $showNames).toggleStyle(.checkbox).tip("Замість прикладу значення показувати назву елемента (як у Mission Planner)")
+                Toggle("Зменшити", isOn: $compact).toggleStyle(.checkbox).tip("Менший перегляд макета")
                 Menu {
                     Button("За типом OSD (авто)") { layoutOverride = nil }
                     Divider()
                     ForEach(OSDFormat.all) { f in Button(lk(f.name)) { layoutOverride = f.id } }
                 } label: { Label(lk(loc("Сітка: ") + (layoutOverride == nil ? "авто" : format.name)), systemImage: "grid") }
-                    .menuStyle(.borderlessButton).fixedSize().help("Розмір сітки макета. Для цифрових систем: HD-макет 50×18 або 60×22")
+                    .menuStyle(.borderlessButton).fixedSize().tip("Розмір сітки макета. Для цифрових систем: HD-макет 50×18 або 60×22")
                 Spacer()
                 Button { copyLayout() } label: { Label("Копіювати макет", systemImage: "doc.on.doc") }.controlSize(.small)
                 Button { pasteLayout() } label: { Label("Вставити макет", systemImage: "doc.on.clipboard") }.controlSize(.small).disabled(clipboard == nil || s.armed)
@@ -366,14 +366,14 @@ struct OSDView: View {
                 Text(lk(OSDInfo.title(k))).font(.system(size: 10)).foregroundStyle(.tertiary).lineLimit(1)
             }
             Spacer(minLength: 0)
-            if hiddenHere { Image(systemName: "eye.slash").font(.system(size: 10)).foregroundStyle(.orange).help("Лише MSP OSD: на цьому типі не відображається") }
+            if hiddenHere { Image(systemName: "eye.slash").font(.system(size: 10)).foregroundStyle(.orange).tip("Лише MSP OSD: на цьому типі не відображається") }
         }
         .padding(.horizontal, 8).padding(.vertical, 6)
         .background(on ? Color.accentColor.opacity(0.16) : Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous).strokeBorder(on ? Color.accentColor.opacity(0.7) : Color.primary.opacity(0.08)))
         .contentShape(Rectangle())
         .onTapGesture { selected = k }
-        .help(lk(OSDInfo.title(k)))
+        .tip(OSDInfo.title(k))
     }
 
     /// Вмикає елемент; якщо його позиція 0,0 (не задана), ставить у вільне місце.

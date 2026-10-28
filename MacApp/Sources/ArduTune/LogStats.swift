@@ -162,7 +162,7 @@ struct LogStatsPanel: View {
                     Text("\(Self.v(s.first)) → \(Self.v(s.last))")
                     Text(String(format: "%+@", Self.v(s.slope))).foregroundStyle(abs(s.slope * s.span) > 1.5 * max(s.std, 1e-12) ? Color.orange : .primary)
                     Text("\(s.n) · \(String(format: "%.1f", s.rate))")
-                    if let f = s.domFreq { Text(String(format: loc("%.2f Гц"), f)).foregroundStyle(s.domShare > 0.25 ? Color.orange : .primary).help(lk(String(format: loc("Частка потужності спектра: %.0f %%"), s.domShare * 100))) }
+                    if let f = s.domFreq { Text(String(format: loc("%.2f Гц"), f)).foregroundStyle(s.domShare > 0.25 ? Color.orange : .primary).tip(String(format: loc("Частка потужності спектра: %.0f %%"), s.domShare * 100)) }
                     else { Text("—").foregroundStyle(.tertiary) }
                 }
                 .font(.system(.caption, design: .monospaced))

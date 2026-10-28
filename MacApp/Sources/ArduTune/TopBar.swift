@@ -115,7 +115,7 @@ struct TopBar: View {
         }
         .buttonStyle(ArmButtonStyle(armed: s.armed))
         .disabled(!s.connected)
-        .help(lk(s.armed ? "Вимкнути мотори (DISARM)" : "Увімкнути мотори (ARM)"))
+        .tip(s.armed ? "Вимкнути мотори (DISARM)" : "Увімкнути мотори (ARM)")
     }
 
     func favBinding(_ m: Int) -> Binding<Bool> {

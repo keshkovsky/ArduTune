@@ -292,7 +292,7 @@ struct FlightView: View {
             } label: { Image(systemName: "plus.circle").font(.system(size: 15)) }
             .menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize()
             .padding(.horizontal, 10)
-            .help("Додати вкладку. Перетягніть вкладку, щоб змінити порядок; правий клік: перемістити чи прибрати.")
+            .tip("Додати вкладку. Перетягніть вкладку, щоб змінити порядок; правий клік: перемістити чи прибрати.")
         }
         .background(.regularMaterial)
     }

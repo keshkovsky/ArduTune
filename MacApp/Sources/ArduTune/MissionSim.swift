@@ -211,14 +211,14 @@ struct MissionSimPanel: View {
             HStack(spacing: 8) {
                 Button { sim.toggle() } label: { Image(systemName: sim.playing ? "pause.fill" : "play.fill").frame(width: 18) }
                     .buttonStyle(.borderedProminent).controlSize(.small).disabled(!sim.hasData)
-                Button { sim.restart() } label: { Image(systemName: "backward.end.fill") }.controlSize(.small).disabled(!sim.hasData).help("На початок")
+                Button { sim.restart() } label: { Image(systemName: "backward.end.fill") }.controlSize(.small).disabled(!sim.hasData).tip("На початок")
                 Slider(value: Binding(get: { sim.t }, set: { sim.t = $0 }), in: 0...max(sim.duration, 1))
                     .disabled(!sim.hasData)
                 Text("\(Self.clock(sim.t)) / \(Self.clock(sim.duration))").font(.caption.monospacedDigit()).foregroundStyle(.secondary)
                 Menu("×\(Int(sim.rate))") {
                     ForEach([1.0, 2, 4, 8, 16, 32, 64], id: \.self) { r in Button("×\(Int(r))") { sim.rate = r } }
-                }.menuStyle(.borderlessButton).fixedSize().help("Швидкість відтворення")
-                Button { sim.close() } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.buttonStyle(.plain).help("Вимкнути симуляцію")
+                }.menuStyle(.borderlessButton).fixedSize().tip("Швидкість відтворення")
+                Button { sim.close() } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }.buttonStyle(.plain).tip("Вимкнути симуляцію")
             }
             HStack(spacing: 10) {
                 Picker("", selection: $sim.kind) { Text("Авто").tag(0); Text("Copter").tag(1); Text("Plane").tag(2) }
@@ -228,7 +228,7 @@ struct MissionSimPanel: View {
                     TextField("авто", value: $sim.cruiseOverride, format: .number.precision(.fractionLength(0...1)))
                         .textFieldStyle(.roundedBorder).frame(width: 46).multilineTextAlignment(.trailing)
                     Text("м/с").foregroundStyle(.secondary)
-                }.help("Крейсерська швидкість; 0 = із параметрів (\(sim.params.plane ? "AIRSPEED_CRUISE" : "WPNAV_SPEED")): зараз \(String(format: "%.1f", sim.params.cruise)) м/с")
+                }.tip("Крейсерська швидкість; 0 = із параметрів (\(sim.params.plane ? "AIRSPEED_CRUISE" : "WPNAV_SPEED")): зараз \(String(format: "%.1f", sim.params.cruise)) м/с")
                 HStack(spacing: 3) {
                     Image(systemName: "wind").foregroundStyle(.secondary)
                     TextField("0", value: $sim.windSpeed, format: .number.precision(.fractionLength(0...1)))
@@ -237,7 +237,7 @@ struct MissionSimPanel: View {
                     TextField("0", value: $sim.windFrom, format: .number.precision(.fractionLength(0)))
                         .textFieldStyle(.roundedBorder).frame(width: 44).multilineTextAlignment(.trailing)
                     Text("°").foregroundStyle(.secondary)
-                }.help("Вітер: швидкість і напрямок, ЗВІДКИ дме (0° = північний). Діє лише на літак у повітрі.")
+                }.tip("Вітер: швидкість і напрямок, ЗВІДКИ дме (0° = північний). Діє лише на літак у повітрі.")
                 Spacer(minLength: 0)
             }
             if let c = cur {
@@ -273,13 +273,13 @@ struct MissionSimPanel: View {
                         HStack(spacing: 3) {
                             Image(systemName: low ? "exclamationmark.triangle.fill" : "mountain.2").foregroundStyle(low ? Color.red : Color.secondary)
                             Text(lk(loc("над землею мін. ") + Units.alt(c))).monospacedDigit().foregroundStyle(low ? Color.red : Color.primary)
-                        }.font(.caption).help("Мінімальний просвіт над рельєфом уздовж траєкторії (без зльоту й посадки); безпечна висота \(Int(minAGL)) м з профілю висоти")
+                        }.font(.caption).tip("Мінімальний просвіт над рельєфом уздовж траєкторії (без зльоту й посадки); безпечна висота \(Int(minAGL)) м з профілю висоти")
                     } else if !sim.terrainStatus.isEmpty {
                         Text(LocalizedStringKey(sim.terrainStatus)).font(.caption2).foregroundStyle(.secondary)
                     }
                     Spacer()
                     Image(systemName: "info.circle").font(.caption).foregroundStyle(.tertiary)
-                        .help("Спрощена кінематика: постійний вітер, без фізики прошивки й турбулентності")
+                        .tip("Спрощена кінематика: постійний вітер, без фізики прошивки й турбулентності")
                 }
             } else {
                 Text(lk(sim.status.isEmpty ? "Розрахунок…" : sim.status)).font(.caption).foregroundStyle(.secondary)

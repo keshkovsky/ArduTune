@@ -264,7 +264,7 @@ struct OfflineBanner: View {
                 Image(systemName: "doc.text.magnifyingglass").foregroundStyle(.blue)
                 Text("Без підключення: показано параметри «\(loc(o.name))» (\(o.params.count)), лише перегляд.").font(.callout)
                 Button { s.ps.closeOffline() } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }
-                    .buttonStyle(.plain).help("Закрити ці параметри")
+                    .buttonStyle(.plain).tip("Закрити ці параметри")
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 10).padding(.vertical, 6)

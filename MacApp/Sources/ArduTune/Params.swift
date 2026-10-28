@@ -254,13 +254,13 @@ struct ParamsView: View {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                 TextField("Пошук за назвою або описом", text: $query).textFieldStyle(.plain)
-                if !ps.metaSource.isEmpty { Text(LocalizedStringKey(ps.metaSourceNice)).font(.caption2).foregroundStyle(.tertiary).lineLimit(1).help("Звідки взято описи параметрів. Підбираються під версію прошивки плати; для параметрів, яких немає в цій версії, використовуються запасні джерела.") }
+                if !ps.metaSource.isEmpty { Text(LocalizedStringKey(ps.metaSourceNice)).font(.caption2).foregroundStyle(.tertiary).lineLimit(1).tip("Звідки взято описи параметрів. Підбираються під версію прошивки плати; для параметрів, яких немає в цій версії, використовуються запасні джерела.") }
                 Toggle("Змінені", isOn: $onlyChanged).toggleStyle(.checkbox)
                 if needsTranslation { Toggle("Оригінал (EN)", isOn: $showOriginal).toggleStyle(.checkbox) }
                 if !s.connected {
                     Picker("", selection: Binding(get: { offlineDir }, set: { selectDir($0) })) {
                         ForEach(Self.vehicleDirs, id: \.0) { Text(lk($0.1)).tag($0.0) }
-                    }.labelsHidden().fixedSize().controlSize(.small).help("Тип апарата для описів параметрів (без підключення)")
+                    }.labelsHidden().fixedSize().controlSize(.small).tip("Тип апарата для описів параметрів (без підключення)")
                 }
                 Menu {
                     if !s.connected {

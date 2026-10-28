@@ -674,10 +674,10 @@ struct OrbitCompass: View {
             Button(action: toggleLock) {
                 Image(systemName: locked ? "lock.fill" : "lock.open").font(.system(size: 10, weight: .medium)).foregroundStyle(locked ? Color.orange : Color.white.opacity(0.75))
             }
-            .buttonStyle(.plain).help(lk(locked ? "Камеру зафіксовано: натисніть, щоб розблокувати" : "Зафіксувати камеру в поточному положенні"))
+            .buttonStyle(.plain).tip(locked ? "Камеру зафіксовано: натисніть, щоб розблокувати" : "Зафіксувати камеру в поточному положенні")
         }
         .padding(4)
         .shadow(color: .black.opacity(0.55), radius: 2.5, y: 1)
-        .help("Компас: клік ставить північ угору; права кнопка: вигляд зверху чи під кутом")
+        .tip("Компас: клік ставить північ угору; права кнопка: вигляд зверху чи під кутом")
     }
 }

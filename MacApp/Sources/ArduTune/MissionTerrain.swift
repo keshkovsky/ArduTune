@@ -178,7 +178,7 @@ struct MissionProfile: View {
             legend(.accentColor, "Планова висота польоту")
             if let z = zoom, let f = lastFull {
                 Button { zoom = nil } label: { Text(String(format: "×%.1f ✕", (f.upperBound - f.lowerBound) / max(z.upperBound - z.lowerBound, 1))) }
-                    .controlSize(.mini).help("Скинути масштаб (подвійний клік по графіку)")
+                    .controlSize(.mini).tip("Скинути масштаб (подвійний клік по графіку)")
             }
             if c.hasTerrain { legend(.brown, "Рельєф (фактична висота землі)") }
             Spacer()
@@ -190,7 +190,7 @@ struct MissionProfile: View {
                 Label(lk(String(format: loc("мін. над землею %.0f м"), mc)), systemImage: mc < minAGL ? "exclamationmark.triangle.fill" : "checkmark.circle")
                     .font(.caption).foregroundStyle(mc < minAGL ? Color.orange : Color.secondary)
                 if mc < minAGL - 0.5 {
-                    Button("Підняти до \(Int(minAGL)) м") { raise(route.1) }.controlSize(.mini).help("Підняти точки, де апарат опиняється нижче безпечної висоти над землею")
+                    Button("Підняти до \(Int(minAGL)) м") { raise(route.1) }.controlSize(.mini).tip("Підняти точки, де апарат опиняється нижче безпечної висоти над землею")
                 }
             }
             if c.hasTerrain {

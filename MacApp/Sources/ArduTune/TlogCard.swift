@@ -47,8 +47,8 @@ struct TlogCard: View {
             if files.isEmpty { Text("Записів поки немає").font(.caption).foregroundStyle(.secondary) }
             ForEach(files.prefix(40)) { f in
                 HStack(spacing: 6) {
-                    Button { openWindow(id: "tlogview", value: f.path) } label: { Image(systemName: "chart.xyaxis.line") }.buttonStyle(.borderless).help("Переглянути й проаналізувати в окремому вікні").disabled(f.size < 1024)
-                    Button { play(f.path) } label: { Image(systemName: "play.fill") }.buttonStyle(.borderless).help("Відтворити у Flight Data").disabled(f.size < 1024)
+                    Button { openWindow(id: "tlogview", value: f.path) } label: { Image(systemName: "chart.xyaxis.line") }.buttonStyle(.borderless).tip("Переглянути й проаналізувати в окремому вікні").disabled(f.size < 1024)
+                    Button { play(f.path) } label: { Image(systemName: "play.fill") }.buttonStyle(.borderless).tip("Відтворити у Flight Data").disabled(f.size < 1024)
                     Text(LocalizedStringKey(f.date)).font(.system(.caption, design: .monospaced))
                     Spacer()
                     Text(lk(ByteCountFormatter.string(fromByteCount: Int64(f.size), countStyle: .file))).font(.caption).foregroundStyle(.secondary)

@@ -419,15 +419,15 @@ struct VideoWindow: View {
         ToolbarItem {
             Button { s.video.running ? s.video.stopAll() : s.video.startGStreamer() } label: {
                 Label(lk(s.video.running ? "Стоп" : "Старт"), systemImage: s.video.running ? "stop.fill" : "play.fill").labelStyle(.titleAndIcon)
-            }.help(lk(s.video.running ? "Зупинити відео" : "Запустити відео"))
+            }.tip(s.video.running ? "Зупинити відео" : "Запустити відео")
         }
         if #available(macOS 26.0, *) { ToolbarSpacer(.fixed) }
         ToolbarItem {
-            Toggle(isOn: $mapOn) { Label("Мінікарта", systemImage: "map").labelStyle(.titleAndIcon) }.toggleStyle(.button).help("Мінікарта з центром на апараті")
+            Toggle(isOn: $mapOn) { Label("Мінікарта", systemImage: "map").labelStyle(.titleAndIcon) }.toggleStyle(.button).tip("Мінікарта з центром на апараті")
         }
         if #available(macOS 26.0, *) { ToolbarSpacer(.fixed) }
         ToolbarItem {
-            Toggle(isOn: $hudOn) { Label("HUD", systemImage: "gauge.with.dots.needle.67percent").labelStyle(.titleAndIcon) }.toggleStyle(.button).help("Дублювати HUD поверх відео")
+            Toggle(isOn: $hudOn) { Label("HUD", systemImage: "gauge.with.dots.needle.67percent").labelStyle(.titleAndIcon) }.toggleStyle(.button).tip("Дублювати HUD поверх відео")
         }
         if #available(macOS 26.0, *) { ToolbarSpacer(.fixed) }
         ToolbarItem {

@@ -229,7 +229,7 @@ struct SurveyPanel: View {
                 Text(lk(sv.pts.count < 3 ? String(localized: "вершин: \(sv.pts.count) (треба ≥ 3)") : String(format: loc("%.1f га · %d галсів"), r.area / 10_000, r.lines))).font(.caption2).foregroundStyle(sv.pts.count < 3 ? Color.orange : Color.secondary)
             }
             Spacer()
-            Button(role: .destructive) { m.removeSurvey(sv.id) } label: { Image(systemName: "trash") }.buttonStyle(.borderless).help("Видалити ділянку й її точки")
+            Button(role: .destructive) { m.removeSurvey(sv.id) } label: { Image(systemName: "trash") }.buttonStyle(.borderless).tip("Видалити ділянку й її точки")
         }
         .padding(6)
         .background(sel ? Color.accentColor.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 8))

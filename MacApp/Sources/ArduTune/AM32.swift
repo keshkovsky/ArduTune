@@ -72,7 +72,7 @@ struct AM32Card: View {
                     .buttonStyle(.borderedProminent).disabled(s.armed || !s.connected && !released)
                 Button { pickLocalApp() } label: { Label(lk(localApp.isEmpty ? "Локальний застосунок…" : String(localized: "Відкрити «\((localApp as NSString).lastPathComponent)»")), systemImage: "app.badge") }
                     .disabled(s.armed)
-                if !localApp.isEmpty { Button { localApp = "" } label: { Image(systemName: "xmark.circle") }.buttonStyle(.borderless).help("Забути локальний застосунок") }
+                if !localApp.isEmpty { Button { localApp = "" } label: { Image(systemName: "xmark.circle") }.buttonStyle(.borderless).tip("Забути локальний застосунок") }
                 Spacer()
                 if released || !s.connected {
                     Button { reconnect() } label: { Label("Повернути підключення", systemImage: "arrow.triangle.2.circlepath") }.tint(.green)

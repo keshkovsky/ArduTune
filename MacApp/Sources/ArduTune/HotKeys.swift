@@ -102,8 +102,8 @@ struct HotKeysCard: View {
                                 .frame(minWidth: 96).padding(.vertical, 3)
                                 .background(recording == a.id ? Color.accentColor.opacity(0.25) : Color.gray.opacity(0.18), in: RoundedRectangle(cornerRadius: 6))
                         }.buttonStyle(.plain)
-                        Button { hk.reset(a) } label: { Image(systemName: "arrow.uturn.backward") }.buttonStyle(.borderless).help("Типова клавіша").disabled(hk.codes[a.id] == nil)
-                        Button { hk.clear(a) } label: { Image(systemName: "xmark.circle") }.buttonStyle(.borderless).help("Прибрати клавішу")
+                        Button { hk.reset(a) } label: { Image(systemName: "arrow.uturn.backward") }.buttonStyle(.borderless).tip("Типова клавіша").disabled(hk.codes[a.id] == nil)
+                        Button { hk.clear(a) } label: { Image(systemName: "xmark.circle") }.buttonStyle(.borderless).tip("Прибрати клавішу")
                     }
                 }
             }

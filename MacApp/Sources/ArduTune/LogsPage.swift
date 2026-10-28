@@ -108,7 +108,7 @@ struct LogsPage: View {
                 .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color.primary.opacity(0.18)))
                 .shadow(color: .black.opacity(0.18), radius: 3, y: 1)
         }
-        .buttonStyle(.plain).help(lk(showSidebar ? "Сховати панель файлів і польотника" : "Показати панель файлів і польотника"))
+        .buttonStyle(.plain).tip(showSidebar ? "Сховати панель файлів і польотника" : "Показати панель файлів і польотника")
     }
 
     var body: some View {
@@ -137,7 +137,7 @@ struct LogsPage: View {
                         Button { Task { await m.refreshFC() } } label: { Label("Отримати список", systemImage: "arrow.clockwise") }.disabled(!s.connected || m.loadingList || m.downloading)
                         if m.loadingList { ProgressView().controlSize(.small) }
                         Spacer()
-                        Button(role: .destructive) { confirmErase() } label: { Image(systemName: "trash") }.help("Видалити всі логи на польотнику").disabled(!s.connected || s.armed || m.fcLogs.isEmpty || m.downloading)
+                        Button(role: .destructive) { confirmErase() } label: { Image(systemName: "trash") }.tip("Видалити всі логи на польотнику").disabled(!s.connected || s.armed || m.fcLogs.isEmpty || m.downloading)
                     }
                     if !s.connected { Text("Підключіть польотник, щоб завантажити логи.").font(.caption).foregroundStyle(.secondary) }
                     if s.armed { Label("ARMED: завантаження заблоковано", systemImage: "lock.fill").font(.caption).foregroundStyle(.red) }
@@ -176,7 +176,7 @@ struct LogsPage: View {
                 Card(title: String(localized: "Логи польотника на Mac"), icon: "internaldrive", text: String(localized: "Dataflash .bin, завантажені з польотника або відкриті вручну.")) {
                     HStack {
                         Button { openFile() } label: { Label("Відкрити файл…", systemImage: "folder") }
-                        Button { NSWorkspace.shared.open(URL(fileURLWithPath: AppSettings.logFolders.df)) } label: { Image(systemName: "arrow.up.forward.app") }.help("Показати папку з логами")
+                        Button { NSWorkspace.shared.open(URL(fileURLWithPath: AppSettings.logFolders.df)) } label: { Image(systemName: "arrow.up.forward.app") }.tip("Показати папку з логами")
                     }
                     if m.local.isEmpty { Text("Завантажених логів немає").font(.caption).foregroundStyle(.secondary) }
                     ForEach(m.local) { l in
@@ -186,8 +186,8 @@ struct LogsPage: View {
                                 Text("\(l.date) · \(ByteCountFormatter.string(fromByteCount: Int64(l.size), countStyle: .file))").font(.caption2).foregroundStyle(.secondary)
                             }
                             Spacer()
-                            Button { Task { await m.open(URL(fileURLWithPath: l.path)) } } label: { Image(systemName: "chart.xyaxis.line") }.help("Переглянути й проаналізувати")
-                            Button(role: .destructive) { deleteLocal(l) } label: { Image(systemName: "trash") }.help("Видалити файл з Mac")
+                            Button { Task { await m.open(URL(fileURLWithPath: l.path)) } } label: { Image(systemName: "chart.xyaxis.line") }.tip("Переглянути й проаналізувати")
+                            Button(role: .destructive) { deleteLocal(l) } label: { Image(systemName: "trash") }.tip("Видалити файл з Mac")
                         }
                         .buttonStyle(.borderless)
                         .padding(.vertical, 2)
@@ -215,7 +215,7 @@ struct LogsPage: View {
                         Button("Створити KML + GPX") { exportTrack(log) }
                         Button("Конвертувати в .log (текст)") { exportText(log) }
                     } label: { Label("Експорт", systemImage: "square.and.arrow.up") }.menuStyle(.borderlessButton).fixedSize()
-                    Button { m.log = nil } label: { Image(systemName: "xmark.circle") }.buttonStyle(.borderless).help("Закрити лог")
+                    Button { m.log = nil } label: { Image(systemName: "xmark.circle") }.buttonStyle(.borderless).tip("Закрити лог")
                 }
                 .padding(.horizontal, 12).padding(.top, 10).padding(.bottom, 6)
                 tabBar
@@ -449,7 +449,7 @@ struct LogGraphView: View {
                 }
                 .pickerStyle(.segmented).labelsHidden().controlSize(.small).frame(maxWidth: .infinity)
                 .padding(.horizontal, 8).padding(.vertical, 6)
-                .help("Усі групи · типові для аналізу · групи з найбільшою кількістю записів у цьому логу")
+                .tip("Усі групи · типові для аналізу · групи з найбільшою кількістю записів у цьому логу")
                 if filter == 1 {
                     HStack(spacing: 6) {
                         Text("Зірочка біля поля додає його до популярних.").font(.caption2).foregroundStyle(.secondary)
@@ -466,12 +466,12 @@ struct LogGraphView: View {
                             ForEach(orderedFields(n), id: \.self) { f in
                                 HStack(spacing: 6) {
                                     Toggle(lk(f), isOn: Binding(get: { selected.contains("\(n).\(f)") }, set: { on in toggle("\(n).\(f)", on) }))
-                                        .toggleStyle(.checkbox).font(.caption).help(lk(LogKnowledge.fieldHelp(n, f) ?? ""))
+                                        .toggleStyle(.checkbox).font(.caption).tip(LogKnowledge.fieldHelp(n, f) ?? "")
                                     Spacer(minLength: 0)
                                     Button { pop.toggle(n, f) } label: {
                                         Image(systemName: top.contains(f) ? "star.fill" : "star").font(.system(size: 9))
                                             .foregroundStyle(top.contains(f) ? Color.yellow.opacity(0.85) : Color.secondary.opacity(0.35))
-                                    }.buttonStyle(.plain).help(top.contains(f) ? "Прибрати з популярних" : "Додати до популярних")
+                                    }.buttonStyle(.plain).tip(top.contains(f) ? "Прибрати з популярних" : "Додати до популярних")
                                 }
                             }
                         } label: {
@@ -483,7 +483,7 @@ struct LogGraphView: View {
                                     Image(systemName: on == 0 ? "square" : (on == fields.count ? "checkmark.square.fill" : "minus.square.fill"))
                                         .foregroundStyle(on == 0 ? Color.secondary : Color.accentColor)
                                 }
-                                .buttonStyle(.plain).help(lk(on == fields.count ? "Прибрати всі поля групи з графіка" : "Додати на графік усі поля групи"))
+                                .buttonStyle(.plain).tip(on == fields.count ? "Прибрати всі поля групи з графіка" : "Додати на графік усі поля групи")
                                 if filter == 0, pop.fields[n] != nil { Image(systemName: "star.fill").font(.system(size: 8)).foregroundStyle(.yellow.opacity(0.8)) }
                                 // число біля назви = кількість полів у списку; кількість записів у логу праворуч сірим
                                 Text("\(n)  ·  \(plottable(n).count)\(LogKnowledge.info(n).map { "  " + loc($0.title) } ?? "")").lineLimit(1)
@@ -493,11 +493,11 @@ struct LogGraphView: View {
                                         .frame(width: max(3, 44 * CGFloat(log.count(n)) / CGFloat(max(maxCount, 1))), height: 4).frame(width: 44, alignment: .trailing)
                                 }
                                 Text(lk(Self.compact(log.count(n)))).font(.caption2.monospacedDigit()).foregroundStyle(.tertiary)
-                                    .help("Записів у логу: \(log.count(n))")
+                                    .tip("Записів у логу: \(log.count(n))")
                                 if chosen > 0 && !open {
                                     Text("\(chosen)").font(.caption2.weight(.bold)).foregroundStyle(.white)
                                         .padding(.horizontal, 6).padding(.vertical, 1).background(Color.accentColor, in: Capsule())
-                                        .help("Вибрано полів: \(chosen)")
+                                        .tip("Вибрано полів: \(chosen)")
                                 }
                             }
                             .contentShape(Rectangle())

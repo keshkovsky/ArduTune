@@ -32,7 +32,7 @@ struct TimeField: View {
         .onAppear { text = fmtT(value) }
         .onChange(of: value) { _, v in text = fmtT(v) }
         .onChange(of: focus) { _, f in if !f { commit() } }
-        .help("Формат: хв:с (наприклад 1:23.5) або секунди")
+        .tip("Формат: хв:с (наприклад 1:23.5) або секунди")
     }
     private func commit() {
         if let v = parseLogTime(text) { onCommit(v) }
@@ -92,7 +92,7 @@ struct RangeBrackets: View {
             .contentShape(Rectangle())
             .offset(x: left ? x - 1 : x - hit + 1, y: top)
             .pointerStyle(.columnResize)
-            .help("Потягніть, щоб звузити діапазон графіка")
+            .tip("Потягніть, щоб звузити діапазон графіка")
     }
     private func tag(_ s: String) -> some View {
         Text(LocalizedStringKey(s)).font(.system(size: 10, design: .monospaced).weight(.semibold)).padding(.horizontal, 5).padding(.vertical, 1)

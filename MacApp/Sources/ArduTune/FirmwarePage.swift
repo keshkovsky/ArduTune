@@ -156,7 +156,7 @@ struct FirmwareView: View {
                         .onChange(of: m.format) { _, _ in m.selected = nil; m.file = nil; m.versions = [] }
                     HStack {
                         TextField("Пошук плати (наприклад, Matek, Pixhawk, CubeOrange)", text: $m.search).textFieldStyle(.roundedBorder)
-                        Button { Task { await m.loadManifest(force: true) } } label: { Image(systemName: "arrow.clockwise") }.help("Оновити каталог").disabled(m.loading)
+                        Button { Task { await m.loadManifest(force: true) } } label: { Image(systemName: "arrow.clockwise") }.tip("Оновити каталог").disabled(m.loading)
                     }
                     if !guess.board.isEmpty {
                         let match = m.entries.first { $0.vehicle == m.vehicle && $0.type == m.kind && BoardGuess.norm($0.folder) == guess.key } ?? m.entries.first { $0.vehicle == m.vehicle && $0.type == m.kind && BoardGuess.norm($0.platform) == guess.key && !$0.url.contains("-heli") }
@@ -260,7 +260,7 @@ struct FirmwareView: View {
                 Text("Автоматично (знайти завантажувач)").tag("")
                 ForEach(m.ports, id: \.self) { Text(lk($0.replacingOccurrences(of: "/dev/", with: ""))).tag($0) }
             }.frame(width: 360)
-            Button { Task { await m.refreshPorts() } } label: { Image(systemName: "arrow.clockwise") }.help("Оновити список портів")
+            Button { Task { await m.refreshPorts() } } label: { Image(systemName: "arrow.clockwise") }.tip("Оновити список портів")
         }
         if s.connected { Label("Польотник підключений: застосунок сам перезавантажить його в режим завантажувача й відключить від нього зв'язок.", systemImage: "info.circle").font(.caption).foregroundStyle(.secondary) }
         else { Label("Польотник не підключений: підключіть плату по USB (бажано в режимі завантажувача) і натисніть «Прошити».", systemImage: "info.circle").font(.caption).foregroundStyle(.secondary) }

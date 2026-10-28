@@ -205,9 +205,9 @@ struct Mission3DPane: View {
                 Label("Масштаб", systemImage: "mountain.2")
             }
             .menuStyle(.borderlessButton).fixedSize()
-            .help("Масштаб рельєфу ×\(Int(model.vexag)) і підсилення висоти точок ×\(model.boost == 2.5 ? "2.5" : String(Int(model.boost)))")
-            Toggle(isOn: Binding(get: { model.follow }, set: { model.follow = $0 })) { Image(systemName: "scope") }.toggleStyle(.button).help("Слідувати за апаратом: камера тримає його в центрі й рухається разом з ним (потрібна GPS-позиція або симуляція)")
-            Button { model.snap(az: 180, el: 35, resetDistance: true) } label: { Image(systemName: "arrow.counterclockwise") }.help("Скинути камеру")
+            .tip("Масштаб рельєфу ×\(Int(model.vexag)) і підсилення висоти точок ×\(model.boost == 2.5 ? "2.5" : String(Int(model.boost)))")
+            Toggle(isOn: Binding(get: { model.follow }, set: { model.follow = $0 })) { Image(systemName: "scope") }.toggleStyle(.button).tip("Слідувати за апаратом: камера тримає його в центрі й рухається разом з ним (потрібна GPS-позиція або симуляція)")
+            Button { model.snap(az: 180, el: 35, resetDistance: true) } label: { Image(systemName: "arrow.counterclockwise") }.tip("Скинути камеру")
         }
         .controlSize(.small)
         .padding(.horizontal, 10).padding(.vertical, 6)
@@ -293,7 +293,7 @@ struct Mission3DPane: View {
                 .foregroundStyle(.primary)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain).help(lk(tilesOpen ? "Згорнути панель показників" : "Розгорнути панель показників"))
+            .buttonStyle(.plain).tip(tilesOpen ? "Згорнути панель показників" : "Розгорнути панель показників")
             if tilesOpen {
                 ForEach(list) { tile in
                     if let v = value(tile.id, veh) {

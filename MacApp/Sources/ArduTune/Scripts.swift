@@ -211,7 +211,7 @@ struct ScriptsTab: View {
         return HStack(spacing: 10) {
             if isLua(it.name) && !it.name.hasSuffix(".luac") {
                 Toggle("", isOn: Binding(get: { !disabled }, set: { on in Task { await m.setEnabled(it.name, on) } })).labelsHidden().toggleStyle(.switch).controlSize(.small).disabled(s.armed || m.busy)
-                    .help(lk(disabled ? "Вимкнений: польотник не запускає цей скрипт" : "Увімкнений: запускається при старті скриптингу"))
+                    .tip(disabled ? "Вимкнений: польотник не запускає цей скрипт" : "Увімкнений: запускається при старті скриптингу")
             } else { Color.clear.frame(width: 38, height: 1) }
             Image(systemName: it.dir ? "folder" : (isLua(it.name) ? "curlybraces" : "doc")).foregroundStyle(it.dir ? .blue : (disabled ? Color.secondary : Color.accentColor)).frame(width: 18)
             VStack(alignment: .leading, spacing: 1) {
@@ -221,11 +221,11 @@ struct ScriptsTab: View {
             Spacer()
             if !it.dir { Text(lk(ByteCountFormatter.string(fromByteCount: Int64(it.size), countStyle: .file))).font(.caption).foregroundStyle(.secondary) }
             if !it.dir && isLua(it.name) {
-                Button { open(it.name) } label: { Image(systemName: "pencil") }.help("Переглянути / редагувати").disabled(m.busy)
-                Button { download(it.name) } label: { Image(systemName: "arrow.down.circle") }.help("Зберегти копію на Mac").disabled(m.busy)
+                Button { open(it.name) } label: { Image(systemName: "pencil") }.tip("Переглянути / редагувати").disabled(m.busy)
+                Button { download(it.name) } label: { Image(systemName: "arrow.down.circle") }.tip("Зберегти копію на Mac").disabled(m.busy)
             }
             if !it.dir {
-                Button(role: .destructive) { confirmDelete(it.name) } label: { Image(systemName: "trash") }.help("Видалити з польотника").disabled(s.armed || m.busy)
+                Button(role: .destructive) { confirmDelete(it.name) } label: { Image(systemName: "trash") }.tip("Видалити з польотника").disabled(s.armed || m.busy)
             }
         }
         .buttonStyle(.borderless)

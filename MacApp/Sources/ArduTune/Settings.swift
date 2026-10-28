@@ -147,7 +147,7 @@ struct SettingsView: View {
                 HStack(spacing: 8) {
                     Stepper(value: $gcsID, in: 1...255) { Text("\(gcsID)").font(.system(.body, design: .monospaced)).frame(width: 44, alignment: .trailing) }
                         .onChange(of: gcsID) { _, _ in AppSettings.pushGcsID() }
-                    if gcsID == 1 { Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange).help("ID 1 використовується автопілотом") }
+                    if gcsID == 1 { Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange).tip("ID 1 використовується автопілотом") }
                     if gcsID != 255 { Button("255") { gcsID = 255 }.controlSize(.small) }
                 }
             }

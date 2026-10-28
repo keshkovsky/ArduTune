@@ -58,7 +58,7 @@ struct MavInspectorTab: View {
             HStack(spacing: 6) {
                 Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
                 TextField("Пошук повідомлення", text: $search).textFieldStyle(.plain)
-                Button { EngineAPI.post("/msgstats/reset") } label: { Image(systemName: "arrow.counterclockwise") }.buttonStyle(.borderless).help("Скинути лічильники")
+                Button { EngineAPI.post("/msgstats/reset") } label: { Image(systemName: "arrow.counterclockwise") }.buttonStyle(.borderless).tip("Скинути лічильники")
             }.padding(8)
             HStack {
                 Text("Повідомлення").frame(maxWidth: .infinity, alignment: .leading)
@@ -114,7 +114,7 @@ struct MavInspectorTab: View {
                             let on = plotted.contains(f.k)
                             HStack(spacing: 8) {
                                 Button { toggle(f.k) } label: { Image(systemName: on ? "chart.xyaxis.line" : "chart.xyaxis.line").foregroundStyle(on ? Color.accentColor : Color.secondary.opacity(numeric ? 0.7 : 0.2)) }
-                                    .buttonStyle(.borderless).disabled(!numeric).help(lk(numeric ? "Додати на графік" : "Не числове поле"))
+                                    .buttonStyle(.borderless).disabled(!numeric).tip(numeric ? "Додати на графік" : "Не числове поле")
                                 Text(LocalizedStringKey(name)).font(.system(.caption, design: .monospaced)).frame(maxWidth: .infinity, alignment: .leading)
                                 Text(LocalizedStringKey(f.v)).font(.system(.caption, design: .monospaced).monospacedDigit()).lineLimit(1).truncationMode(.middle).frame(maxWidth: 140, alignment: .trailing)
                             }

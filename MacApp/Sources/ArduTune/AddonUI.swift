@@ -181,7 +181,7 @@ struct AddonNodeView: View {
                 let text = lab.isEmpty ? Text(verbatim: "") : (hint != nil ? Text(lk(lab)) + Text(verbatim: "  " + hint!).foregroundStyle(.secondary) : Text(lk(lab)))
                 if let ic = node.str("icon") { Label { text } icon: { Image(systemName: ic) } } else { text }
             }
-            .help(hint.map { "⌨ " + $0 } ?? "")
+            .tip(hint.map { "⌨ " + $0 } ?? "")
             .disabled(node.bool("disabled"))
             .buttonStyle(.bordered).tint(node.bool("prominent") ? .accentColor : color(node.str("tint")))
             .frame(width: node.num("width").map { CGFloat($0) })
@@ -318,7 +318,7 @@ struct AddonCard: View {
                     ForEach(addon.declared, id: \.self) { p in
                         Toggle(isOn: Binding(get: { addon.granted.contains(p) }, set: { mgr.setGranted(addon, p, $0) })) {
                             Text(lk(AddonPermission.title(p))).font(.caption)
-                        }.toggleStyle(.checkbox).help(lk(AddonPermission.all.first { $0.id == p }?.detail ?? p)).disabled(!addon.enabled)
+                        }.toggleStyle(.checkbox).tip(AddonPermission.all.first { $0.id == p }?.detail ?? p).disabled(!addon.enabled)
                     }
                 }
             }
@@ -326,7 +326,7 @@ struct AddonCard: View {
                 Text(lk(addon.enabled ? (addon.status.isEmpty ? "Працює" : addon.status) : "Вимкнено")).font(.caption)
                     .foregroundStyle(addon.status.hasPrefix("JS") || addon.status.hasPrefix("⚠︎") ? Color.orange : Color.secondary)
                 Spacer()
-                Button { mgr.reload(addon) } label: { Image(systemName: "arrow.clockwise") }.help("Перезапустити розширення").disabled(!addon.enabled)
+                Button { mgr.reload(addon) } label: { Image(systemName: "arrow.clockwise") }.tip("Перезапустити розширення").disabled(!addon.enabled)
                 Button { showLog.toggle() } label: { Label("Журнал", systemImage: "text.alignleft") }
             }.buttonStyle(.borderless)
             if showLog {

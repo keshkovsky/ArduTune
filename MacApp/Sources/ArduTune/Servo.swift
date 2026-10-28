@@ -241,7 +241,7 @@ struct ServoLiveCell: View {
                 .frame(width: 36, alignment: .trailing)
         }
         .frame(width: ServoCols.live)
-        .help(lk(pwm > 0 ? String(localized: "Поточний сигнал на виході \(ch): \(pwm) мкс") : "Немає даних про вихід (лише виходи 1–16)"))
+        .tip(pwm > 0 ? String(localized: "Поточний сигнал на виході \(ch): \(pwm) мкс") : "Немає даних про вихід (лише виходи 1–16)")
     }
 }
 

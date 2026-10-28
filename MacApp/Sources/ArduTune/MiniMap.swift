@@ -115,7 +115,7 @@ struct MiniMapPanel: View {
                 Toggle("До кінцевої точки: азимут і відстань", isOn: $showEnd)
             } label: {
                 Image(systemName: "ellipsis.circle").font(.system(size: 12, weight: .bold)).padding(5).background(.black.opacity(0.55), in: Circle()).foregroundStyle(.white)
-            }.menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().padding(5).help("Що показувати на мінікарті")
+            }.menuStyle(.borderlessButton).menuIndicator(.hidden).fixedSize().padding(5).tip("Що показувати на мінікарті")
         }
         .overlay(alignment: .bottomLeading) {
             VStack(alignment: .leading, spacing: 2) {
@@ -128,7 +128,7 @@ struct MiniMapPanel: View {
             Button { withAnimation(.snappy(duration: 0.2)) { big.toggle() } } label: {
                 Image(systemName: big ? "arrow.down.right.and.arrow.up.left" : "arrow.up.left.and.arrow.down.right")
                     .font(.system(size: 11, weight: .bold)).padding(6).background(.black.opacity(0.55), in: Circle()).foregroundStyle(.white)
-            }.buttonStyle(.plain).padding(5).help(lk(big ? "Згорнути мінікарту" : "Розгорнути мінікарту"))
+            }.buttonStyle(.plain).padding(5).tip(big ? "Згорнути мінікарту" : "Розгорнути мінікарту")
         }
         .overlay(alignment: .bottomTrailing) {
             VStack(spacing: 3) {

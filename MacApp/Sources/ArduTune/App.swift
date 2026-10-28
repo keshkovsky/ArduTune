@@ -213,14 +213,14 @@ struct ContentView: View {
             HStack {
                 if !compact {
                     Button { openWindow(id: "about") } label: { AppWordmark(size: 23).contentShape(Rectangle()) }
-                        .buttonStyle(.plain).help("Про ArduTune").padding(.leading, 6)
+                        .buttonStyle(.plain).tip("Про ArduTune").padding(.leading, 6)
                 }
                 Spacer(minLength: 0)
                 Button { withAnimation(.snappy(duration: 0.2)) { compact.toggle() } } label: {
                     Image(systemName: compact ? "sidebar.left" : "sidebar.squares.left").font(.system(size: 14))
                         .frame(width: 28, height: 24).contentShape(Rectangle())
                 }
-                .buttonStyle(.plain).help(lk(compact ? "Розгорнути панель" : "Згорнути до іконок"))
+                .buttonStyle(.plain).tip(compact ? "Розгорнути панель" : "Згорнути до іконок")
             }
             .padding(.horizontal, compact ? 0 : 8).padding(.top, 8).padding(.bottom, 4)
             .frame(maxWidth: .infinity, alignment: compact ? .center : .leading)
@@ -282,7 +282,7 @@ struct ContentView: View {
             .background(selected ? Color.primary.opacity(0.11) : .clear, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         }
         .buttonStyle(.plain)
-        .help(lk(it.title))
+        .tip(it.title)
         .contextMenu {
             Button { openWindow(id: "page", value: it.id) } label: { Label("Відкрити в окремому вікні", systemImage: "macwindow.badge.plus") }
             Button { tab = it.id } label: { Label("Відкрити тут", systemImage: "arrow.right.circle") }

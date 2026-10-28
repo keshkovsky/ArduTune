@@ -432,10 +432,10 @@ struct MissionControlPanel: View {
                     }
                 }
                 HStack(spacing: 6) {
-                    Button { if simOn { sim.step(-1, count: s.mission.items.count) } else { EngineAPI.post("/mission/current?seq=\(max(1, s.t.wpSeq - 1))") } } label: { Image(systemName: "backward.end.fill") }.help("Попередня точка")
-                    Button { setMode("Auto") } label: { Label("Старт", systemImage: "play.fill") }.help("Режим AUTO: виконувати місію")
-                    Button { setMode("Loiter") } label: { Label("Пауза", systemImage: "pause.fill") }.help("Режим LOITER: зависнути на місці")
-                    Button { if simOn { sim.step(1, count: s.mission.items.count) } else { EngineAPI.post("/mission/current?seq=\(s.t.wpSeq + 1)") } } label: { Image(systemName: "forward.end.fill") }.help("Наступна точка")
+                    Button { if simOn { sim.step(-1, count: s.mission.items.count) } else { EngineAPI.post("/mission/current?seq=\(max(1, s.t.wpSeq - 1))") } } label: { Image(systemName: "backward.end.fill") }.tip("Попередня точка")
+                    Button { setMode("Auto") } label: { Label("Старт", systemImage: "play.fill") }.tip("Режим AUTO: виконувати місію")
+                    Button { setMode("Loiter") } label: { Label("Пауза", systemImage: "pause.fill") }.tip("Режим LOITER: зависнути на місці")
+                    Button { if simOn { sim.step(1, count: s.mission.items.count) } else { EngineAPI.post("/mission/current?seq=\(s.t.wpSeq + 1)") } } label: { Image(systemName: "forward.end.fill") }.tip("Наступна точка")
                 }
                 .controlSize(.small).disabled(!canCmd)
                 if simOn { Label(lk(loc("Симуляція: ") + (sim.note.isEmpty ? "команди йдуть у віртуальний апарат" : sim.note)), systemImage: "play.circle").font(.caption2).foregroundStyle(Color.accentColor) }
@@ -666,7 +666,7 @@ struct FencePanel: View {
                 Text(lk(z.isCircle ? String(format: loc("Коло, радіус %.0f м"), z.radius) : String(localized: "Багатокутник, вершин: \(z.pts.count)") + (z.pts.count < 3 ? " (треба ≥ 3)" : ""))).font(.caption2).foregroundStyle(z.isCircle || z.pts.count >= 3 ? Color.secondary : Color.orange)
             }
             Spacer()
-            Button(role: .destructive) { m.removeZone(z.id) } label: { Image(systemName: "trash") }.buttonStyle(.borderless).help("Видалити зону")
+            Button(role: .destructive) { m.removeZone(z.id) } label: { Image(systemName: "trash") }.buttonStyle(.borderless).tip("Видалити зону")
         }
         .padding(6)
         .background(sel ? Color.accentColor.opacity(0.14) : .clear, in: RoundedRectangle(cornerRadius: 8))
@@ -821,7 +821,7 @@ struct MissionRoutePanel: View {
             Button { m.sim.enabled.toggle(); if !m.sim.enabled { m.sim.pause() } else { m.sim.play() } } label: {
                 Label(lk(m.sim.enabled ? "Вимкнути симуляцію" : "Симуляція польоту по місії"), systemImage: m.sim.enabled ? "stop.circle.fill" : "play.circle.fill").frame(maxWidth: .infinity)
             }.controlSize(.large).disabled(m.items.isEmpty || (flying && !m.sim.enabled))
-                .help(lk(flying ? "Недоступна під час реального польоту" : (m.items.isEmpty ? "Спершу додайте точки місії" : "Віртуальний політ по плану на карті, без польотника")))
+                .tip(flying ? "Недоступна під час реального польоту" : (m.items.isEmpty ? "Спершу додайте точки місії" : "Віртуальний політ по плану на карті, без польотника"))
             if flying { Label("Симуляція недоступна: апарат у польоті (ARMED)", systemImage: "lock.fill").font(.caption2).foregroundStyle(.orange) }
             HStack(spacing: 4) {
                 Text("Швидкість для розрахунку").font(.caption).foregroundStyle(.secondary)
@@ -903,10 +903,10 @@ struct MissionItemEditor: View {
                             }
                         } label: { Label(LocalizedStringKey(it.def.name), systemImage: it.def.icon).font(.callout.weight(.semibold)) }.menuStyle(.borderlessButton).fixedSize()
                         Spacer()
-                        Button { m.move(id, by: -1) } label: { Image(systemName: "chevron.up") }.help("Вище")
-                        Button { m.move(id, by: 1) } label: { Image(systemName: "chevron.down") }.help("Нижче")
-                        Button { m.duplicate(id) } label: { Image(systemName: "plus.square.on.square") }.help("Дублювати")
-                        Button(role: .destructive) { m.remove(id) } label: { Image(systemName: "trash") }.help("Видалити")
+                        Button { m.move(id, by: -1) } label: { Image(systemName: "chevron.up") }.tip("Вище")
+                        Button { m.move(id, by: 1) } label: { Image(systemName: "chevron.down") }.tip("Нижче")
+                        Button { m.duplicate(id) } label: { Image(systemName: "plus.square.on.square") }.tip("Дублювати")
+                        Button(role: .destructive) { m.remove(id) } label: { Image(systemName: "trash") }.tip("Видалити")
                     }.buttonStyle(.borderless)
                     if it.group != nil {
                         Label("Точку згенеровано ділянкою обліту: зміни втратяться, коли ви зміните параметри ділянки. Керуйте нею у вкладці «Ділянка».", systemImage: "square.grid.3x3").font(.caption).foregroundStyle(.purple)
@@ -1006,8 +1006,8 @@ struct HomeEditor: View {
                     HStack {
                         Label("Home", systemImage: "house.fill").font(.headline)
                         Spacer()
-                        Button { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(MissionStore.coordString(h.lat, h.lon), forType: .string) } label: { Image(systemName: "doc.on.doc") }.help("Копіювати координати")
-                        Button(role: .destructive) { m.selected = MissionStore.homeID; _ = m.deleteSelected() } label: { Image(systemName: "trash") }.help("Видалити Home")
+                        Button { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(MissionStore.coordString(h.lat, h.lon), forType: .string) } label: { Image(systemName: "doc.on.doc") }.tip("Копіювати координати")
+                        Button(role: .destructive) { m.selected = MissionStore.homeID; _ = m.deleteSelected() } label: { Image(systemName: "trash") }.tip("Видалити Home")
                     }.buttonStyle(.borderless)
                     HStack { field("Широта", num(\.lat)); field("Довгота", num(\.lon)) }
                     if Coords.isMGRS { MGRSEditField(lat: h.lat, lon: h.lon) { la, lo in m.home = HomePoint(lat: la, lon: lo, alt: h.alt) }.id("\(h.lat),\(h.lon)") }

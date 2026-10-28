@@ -450,7 +450,7 @@ struct VTXRawField: View {
             .onSubmit { commit(v) }
             .onAppear { sync() }
             .onChange(of: cur) { _, _ in if !focused { sync() } }
-            .help(lk(outMeta ? String(localized: "Поза діапазоном метаданих ArduPilot (\(meta?.min.map { fmt($0, isInt: true) } ?? "")…\(meta?.max.map { fmt($0, isInt: true) } ?? "")): прошивка не обмежує, але передавач має це підтримувати") : "\(loc(name)): \(Int(lo))…\(Int(hi))"))
+            .tip(outMeta ? String(localized: "Поза діапазоном метаданих ArduPilot (\(meta?.min.map { fmt($0, isInt: true) } ?? "")…\(meta?.max.map { fmt($0, isInt: true) } ?? "")): прошивка не обмежує, але передавач має це підтримувати") : "\(loc(name)): \(Int(lo))…\(Int(hi))")
     }
     func sync() { if let c = s.ps.val(name) { text = fmt(c, isInt: true) } }
     func commit(_ v: Double?) {

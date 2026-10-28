@@ -245,7 +245,7 @@ struct JoystickSheet: View {
                     if j.vcp.ports.isEmpty { Text("— немає портів —").tag("") }
                     ForEach(j.vcp.ports, id: \.self) { Text(lk($0.replacingOccurrences(of: "/dev/", with: ""))).tag($0) }
                 }.labelsHidden().frame(width: 280)
-                Button { j.vcp.refreshPorts() } label: { Image(systemName: "arrow.clockwise") }.help("Refresh")
+                Button { j.vcp.refreshPorts() } label: { Image(systemName: "arrow.clockwise") }.tip("Refresh")
                 Button(j.vcp.open ? "Close port" : "Open port") { j.vcp.open ? j.vcp.closePort() : j.vcp.openPort() }.disabled(j.vcp.port.isEmpty)
                 Toggle(isOn: Binding(get: { j.enabled }, set: { j.enabled = $0 })) { Text(lk(j.enabled ? "Вимкнути" : "Enable")) }
                     .toggleStyle(.button).tint(j.enabled ? .green : nil).disabled(!j.vcp.open || !s.connected)

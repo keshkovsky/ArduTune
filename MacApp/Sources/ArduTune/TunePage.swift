@@ -33,7 +33,7 @@ struct TuneRow: View {
                 VStack(alignment: .leading, spacing: 1) {
                     HStack(spacing: 6) {
                         Text(LocalizedStringKey(title)).font(.callout).lineLimit(2)
-                        if changed { Circle().fill(Color.orange).frame(width: 6, height: 6).help("Змінено порівняно з початковим значенням") }
+                        if changed { Circle().fill(Color.orange).frame(width: 6, height: 6).tip("Змінено порівняно з початковим значенням") }
                     }
                     Text(LocalizedStringKey(name)).font(.system(.caption2, design: .monospaced)).foregroundStyle(.tertiary)
                 }
@@ -43,10 +43,10 @@ struct TuneRow: View {
                     Button { withAnimation(.snappy(duration: 0.18)) { showTip.toggle() } } label: {
                         Image(systemName: showTip ? "lightbulb.fill" : "lightbulb").font(.system(size: 14, weight: .medium)).foregroundStyle(showTip ? Color.yellow : Color.secondary)
                             .frame(width: 28, height: 28).background(Color.primary.opacity(showTip ? 0.12 : 0.07), in: Circle()).contentShape(Circle())
-                    }.buttonStyle(.plain).help("Порада щодо налаштування")
+                    }.buttonStyle(.plain).tip("Порада щодо налаштування")
                 } else { Color.clear.frame(width: 28, height: 1) }
                 Button { if let b = base { write(b) } } label: { Image(systemName: "arrow.uturn.backward") }
-                    .buttonStyle(.borderless).opacity(changed ? 1 : 0).disabled(!changed || s.armed).help("Повернути початкове значення")
+                    .buttonStyle(.borderless).opacity(changed ? 1 : 0).disabled(!changed || s.armed).tip("Повернути початкове значення")
             }
             if describe, let d = desc {
                 Text(LocalizedStringKey(d)).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true).frame(maxWidth: 560, alignment: .leading)
@@ -133,14 +133,14 @@ struct StepField: View {
         let changed = base != nil && cur != nil && abs(base! - cur!) > 1e-9
         HStack(spacing: 4) {
             Button { bump(-1) } label: { Image(systemName: "minus").font(.system(size: 10, weight: .bold)).frame(width: 22, height: 22).background(Color.primary.opacity(0.08), in: Circle()) }
-                .buttonStyle(.plain).disabled(s.armed || cur == nil).help("Зменшити на крок \(fmt(step, isInt: false)) (⌥ = ×10)")
+                .buttonStyle(.plain).disabled(s.armed || cur == nil).tip("Зменшити на крок \(fmt(step, isInt: false)) (⌥ = ×10)")
             TextField("", text: $text).textFieldStyle(.plain).multilineTextAlignment(.center)
                 .font(.system(.callout, design: .monospaced).weight(changed ? .semibold : .regular)).foregroundStyle(changed ? Color.orange : Color.primary)
                 .frame(width: width).padding(.vertical, 3).background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
                 .focused($focused).disabled(s.armed || cur == nil)
                 .onSubmit { if let v = Double(text.replacingOccurrences(of: ",", with: ".")) { write(v) }; sync(ps.val(name)) }
             Button { bump(1) } label: { Image(systemName: "plus").font(.system(size: 10, weight: .bold)).frame(width: 22, height: 22).background(Color.primary.opacity(0.08), in: Circle()) }
-                .buttonStyle(.plain).disabled(s.armed || cur == nil).help("Збільшити на крок \(fmt(step, isInt: false)) (⌥ = ×10)")
+                .buttonStyle(.plain).disabled(s.armed || cur == nil).tip("Збільшити на крок \(fmt(step, isInt: false)) (⌥ = ×10)")
         }
         .onAppear { sync(cur) }
         .onChange(of: cur) { _, v in if !focused { sync(v) } }
@@ -206,7 +206,7 @@ struct TuneView: View {
             Button { showWorkflow.toggle() } label: { Label("Порадник", systemImage: "questionmark.circle") }
                 .popover(isPresented: $showWorkflow, arrowEdge: .bottom) { workflow }
             Button { openWindow(id: "pidgame") } label: { Label("Тренажер PID", systemImage: "gamecontroller.fill") }
-                .help("Інтерактивна гра у віртуальному дроні в окремому вікні; нічого не змінює на реальному апараті")
+                .tip("Інтерактивна гра у віртуальному дроні в окремому вікні; нічого не змінює на реальному апараті")
         }
     }
 
@@ -322,7 +322,7 @@ struct MatrixHeader: View {
                         .background(Color.primary.opacity(show ? 0.12 : 0.07), in: Circle())
                         .contentShape(Circle())
                 }
-                .buttonStyle(.plain).help("Порада щодо параметра \(loc(kind))")
+                .buttonStyle(.plain).tip("Порада щодо параметра \(loc(kind))")
                 .popover(isPresented: $show, arrowEdge: .bottom) { TipView(tip: TuneTips.tip(s)!) }
             }
         }
@@ -356,7 +356,7 @@ struct TipButton: View {
             Button { show.toggle() } label: {
                 Image(systemName: show ? "lightbulb.fill" : "lightbulb").font(.system(size: 14, weight: .medium)).foregroundStyle(show ? Color.yellow : Color.secondary)
                     .frame(width: 28, height: 28).background(Color.primary.opacity(show ? 0.12 : 0.07), in: Circle()).contentShape(Circle())
-            }.buttonStyle(.plain).help("Порада")
+            }.buttonStyle(.plain).tip("Порада")
             .popover(isPresented: $show, arrowEdge: .bottom) { TipView(tip: t) }
         }
     }
@@ -610,7 +610,7 @@ struct TuneHistoryCard: View {
                             Text(LocalizedStringKey(r.0)).font(.system(.caption, design: .monospaced))
                             Text(lk(fmt(r.1, isInt: false))).font(.system(.caption, design: .monospaced))
                             Text(lk(fmt(r.2, isInt: false))).font(.system(.caption, design: .monospaced).weight(.semibold)).foregroundStyle(.blue)
-                            Button { tune.apply(ps, [r.0: r.2], label: loc("З порівняння: ") + other!.0, merge: true) } label: { Image(systemName: "arrow.left") }.buttonStyle(.borderless).disabled(s.armed).help("Прийняти значення з порівнюваного набору")
+                            Button { tune.apply(ps, [r.0: r.2], label: loc("З порівняння: ") + other!.0, merge: true) } label: { Image(systemName: "arrow.left") }.buttonStyle(.borderless).disabled(s.armed).tip("Прийняти значення з порівнюваного набору")
                         }
                     }
                 }

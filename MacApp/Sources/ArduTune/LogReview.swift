@@ -242,7 +242,7 @@ struct LogPIDReviewView: View {
                 }
                 HStack(spacing: 14) {
                     axisPicker($axis)
-                    Toggle("Лише політ", isOn: $airOnly).toggleStyle(.checkbox).help("Використовувати лише ділянки в повітрі (за газом)")
+                    Toggle("Лише політ", isOn: $airOnly).toggleStyle(.checkbox).tip("Використовувати лише ділянки в повітрі (за газом)")
                     if busy { ProgressView().controlSize(.small) }
                     Spacer()
                 }

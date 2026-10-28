@@ -249,7 +249,7 @@ struct SensorFiltersCard: View {
     var ps: ParamStore { s.ps }
 
     func preset(_ title: String, _ hz: Double, _ hint: String) -> some View {
-        Button(lk(title)) { ps.write("INS_GYRO_FILTER", hz); ps.write("INS_ACCEL_FILTER", hz) }.help(lk(hint)).disabled(s.armed)
+        Button(lk(title)) { ps.write("INS_GYRO_FILTER", hz); ps.write("INS_ACCEL_FILTER", hz) }.tip(hint).disabled(s.armed)
     }
 
     var body: some View {

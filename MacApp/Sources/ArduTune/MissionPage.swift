@@ -12,6 +12,9 @@ struct MissionPage: View {
     @State private var opt = MapOptions()
     @State private var topH: CGFloat = 52
     @AppStorage("mission.gcs.open") private var gcsOpen = true
+    @AppStorage("mission.profile.show") private var profShow = true
+    @AppStorage("mission.profile.h") private var profH = 116.0
+    @State private var profDrag: Double?
     private var front: FrontLine { FrontLine.shared }
 
     var body: some View {
@@ -70,7 +73,8 @@ struct MissionPage: View {
                     .onPreferenceChange(BlockRectsKey.self) { m.blocked = $0 }
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                     .padding([.top, .leading, .trailing], 8)
-                MissionProfile(m: m).frame(height: 116).padding(.horizontal, 8).padding(.vertical, 6)
+                profileBar
+                if profShow { MissionProfile(m: m).frame(height: profDrag ?? profH).padding(.horizontal, 8).padding(.bottom, 6) }
             }
             Divider()
             MissionInspector(m: m).frame(width: 350)
@@ -134,6 +138,30 @@ struct MissionPage: View {
         }
         mb.item("Центрувати на апараті", enabled: s.t.gpsFix >= 3, soon: false, symbol: "scope") { ctl.center(.init(latitude: s.t.lat, longitude: s.t.lon), distance: 800) }
         mb.show(for: view, event: event)
+    }
+
+    /// Смужка над профілем висоти: перетягніть, щоб змінити висоту; стрілка ховає й показує профіль.
+    var profileBar: some View {
+        HStack(spacing: 8) {
+            Button { withAnimation(.snappy(duration: 0.2)) { profShow.toggle() } } label: {
+                Image(systemName: profShow ? "chevron.down" : "chevron.up").font(.system(size: 10, weight: .bold)).frame(width: 22, height: 14)
+            }.buttonStyle(.plain).help(profShow ? "Сховати профіль висоти" : "Показати профіль висоти")
+            if !profShow { Text("Профіль висоти").font(.caption).foregroundStyle(.secondary) }
+            Spacer()
+            if profShow {
+                Capsule().fill(Color.secondary.opacity(0.45)).frame(width: 44, height: 4)
+                    .padding(.vertical, 5).contentShape(Rectangle()).help("Потягніть, щоб змінити висоту профілю")
+                    .onHover { if $0 { NSCursor.resizeUpDown.push() } else { NSCursor.pop() } }
+                    .gesture(DragGesture(minimumDistance: 1, coordinateSpace: .global)
+                        .onChanged { g in profDrag = min(420, max(70, profH - g.translation.height)) }
+                        .onEnded { g in profH = min(420, max(70, profH - g.translation.height)); profDrag = nil })
+            }
+            Spacer()
+            if profShow {
+                Button { profH = 116 } label: { Image(systemName: "arrow.up.and.down.text.horizontal") }.buttonStyle(.plain).help("Типова висота")
+            }
+        }
+        .padding(.horizontal, 12).frame(height: 18)
     }
 
     /// Гарячі клавіші плану: ⌘Z / ⇧⌘Z, ⌘C / ⌘X / ⌘V, Delete.

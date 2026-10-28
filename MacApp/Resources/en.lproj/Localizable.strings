@@ -3781,3 +3781,8 @@
 "Типова клавіша" = "Default key";
 "Прибрати клавішу" = "Remove key";
 "Скинути всі" = "Reset all";
+"Сховати профіль висоти" = "Hide the elevation profile";
+"Показати профіль висоти" = "Show the elevation profile";
+"Профіль висоти" = "Elevation profile";
+"Потягніть, щоб змінити висоту профілю" = "Drag to resize the profile";
+"Типова висота" = "Default height";

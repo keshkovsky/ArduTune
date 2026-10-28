@@ -99,6 +99,7 @@ struct SettingsView: View {
                 appearance
                 connection
                 unitsCard
+                HotKeysCard()
                 voiceCard
                 telemetry
                 maps

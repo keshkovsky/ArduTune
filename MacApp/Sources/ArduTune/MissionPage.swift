@@ -151,6 +151,15 @@ struct MissionPage: View {
             }
         }
         if f == [.command, .shift], key == "z" { m.redo(); return true }
+        if f.isEmpty, let a = HotKeys.shared.action(for: e, scope: .mission), !m.view3D {
+            switch a.id {
+            case "ms.select": m.ruler.active = false; m.addMode = false; m.ruler.clear(); return true
+            case "ms.add": m.ruler.active = false; m.addMode = true; m.ruler.clear(); return true
+            case "ms.ruler": m.ruler.active = true; m.addMode = false; return true
+            default: break
+            }
+        }
+        if f.isEmpty, e.keyCode == 53, m.addMode, !(m.ruler.active || m.ruler.a != nil) { m.addMode = false; return true }   // Esc у «Додаванні» повертає у «Вибір»
         if f.isEmpty, e.keyCode == 53, m.ruler.active || m.ruler.a != nil { m.ruler.active = false; m.ruler.clear(); return true }   // Esc закриває лінійку
         if f.isEmpty, e.keyCode == 51 || e.keyCode == 117 { return m.deleteSelected() }       // Backspace / Delete
         return false

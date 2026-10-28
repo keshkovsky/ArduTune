@@ -484,6 +484,7 @@ struct MapPanel: View {
         .overlay(alignment: .trailing) { MapControls(ctl: ctl).blockMap().padding(.trailing, 10) }
         .background(AddonKeyCatcher { e in
             if e.keyCode == 53, s.mission.ruler.active || s.mission.ruler.a != nil { s.mission.ruler.active = false; s.mission.ruler.clear(); return true }   // Esc закриває лінійку
+            if hotkey(e) { return true }
             return trk.handleKey(e, s, station: trk.station(s, home: homeC))
         })
         .onAppear { trk.start(s) }
@@ -536,6 +537,25 @@ struct MapPanel: View {
         }
         .padding(.horizontal, 10).padding(.vertical, 6)
         .background(.regularMaterial)
+    }
+
+    /// Гарячі клавіші карти (налаштовуються в Налаштуваннях).
+    func hotkey(_ e: NSEvent) -> Bool {
+        guard let a = HotKeys.shared.action(for: e, scope: .flight) else { return false }
+        switch a.id {
+        case "fd.ruler": s.mission.ruler.active.toggle(); s.mission.ruler.clear()
+        case "fd.track": opt.showTrack.toggle()
+        case "fd.clearTrack": s.track.removeAll()
+        case "fd.center": centerOnVehicle()
+        case "fd.autopan": opt.autoPan.toggle()
+        case "fd.zoomIn": ctl.zoom(0.6)
+        case "fd.zoomOut": ctl.zoom(1 / 0.6)
+        case "fd.rotL": ctl.rotate(by: -15)
+        case "fd.rotR": ctl.rotate(by: 15)
+        case "fd.north": opt.headingUp = false; ctl.setHeading(0)
+        default: return false
+        }
+        return true
     }
 
     func centerOnVehicle() { if s.t.gpsFix >= 3 { ctl.center(.init(latitude: s.t.lat, longitude: s.t.lon), distance: 500) } }

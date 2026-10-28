@@ -144,11 +144,8 @@ struct MissionPage: View {
     /// Смужка над профілем висоти: тягніть вгору/вниз; у крайньому нижньому положенні профіль згортається, потягнувши назад — розгортається.
     /// Подвійний клік згортає профіль або розгортає до середнього розміру.
     var profileBar: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.16))
-            Capsule().fill(Color.secondary.opacity(0.85)).frame(width: 90, height: 5)
-        }
-        .frame(height: 18).padding(.horizontal, 8)
+        Capsule().fill(Color.secondary.opacity(0.85)).frame(width: 90, height: 5)
+        .frame(maxWidth: .infinity, minHeight: 18, maxHeight: 18).padding(.horizontal, 8)
         .contentShape(Rectangle())
         .help("Потягніть, щоб змінити розмір профілю. У нижньому положенні він згортається. Подвійний клік: згорнути чи розгорнути")
         .onHover { if $0 { NSCursor.resizeUpDown.push() } else { NSCursor.pop() } }
